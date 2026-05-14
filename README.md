@@ -71,8 +71,9 @@ dependencyResolutionManagement {
 
 ```kotlin
 plugins {
-    alias(libs.plugins.kotlinMultiplatform) // or kotlin("android")
-    alias(libs.plugins.androidApplication)  // or androidLibrary
+    alias(libs.plugins.kotlinMultiplatform) // or kotlin("android") for non-KMP
+    alias(libs.plugins.androidKmpLibrary)   // or androidApplication / androidLibrary
+    alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
 }
@@ -80,24 +81,70 @@ plugins {
 
 ### 3. Add the dependencies
 
+Pick the snippet that matches your module shape.
+
+**Kotlin Multiplatform (AGP 9, `com.android.kotlin.multiplatform.library`):**
+
 ```kotlin
 kotlin {
+    androidLibrary { /* ... */ }
+    iosArm64()
+    iosSimulatorArm64()
+
     sourceSets {
-        // commonMain or androidMain — depending on where you annotate
-        androidMain.dependencies {
+        // Annotation can live in commonMain (it's KMP). The @AutoPreview-annotated
+        // @Composable Preview function itself must live in androidMain — the processor
+        // only generates Android @Preview annotations.
+        commonMain.dependencies {
             implementation("io.github.drunkendealer:compose-auto-preview-annotations:1.0.0")
+        }
+        androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview) // PreviewParameter, PreviewParameterProvider
         }
     }
 }
 
+// IMPORTANT: this `dependencies { }` block must be a sibling of `kotlin { }`,
+// not nested inside it. The one inside `kotlin { }` is KMP-internal scope
+// and won't expose Gradle's `add(...)` / `kspAndroid(...)`.
 dependencies {
-    // Only Android variants render `@Preview` in Studio, so wire KSP on the Android target.
     add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:1.0.0")
-    // For a single-target Android module use: ksp(...)
+}
+```
+
+**Kotlin Multiplatform (classic, `com.android.library` + `androidTarget`):**
+
+```kotlin
+kotlin {
+    androidTarget { /* ... */ }
+    iosArm64()
+
+    sourceSets {
+        androidMain.dependencies {
+            implementation("io.github.drunkendealer:compose-auto-preview-annotations:1.0.0")
+            implementation(libs.compose.uiToolingPreview)
+        }
+    }
+}
+
+dependencies {
+    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:1.0.0")
     debugImplementation(libs.compose.uiTooling)
 }
 ```
+
+**Single-target Android (no KMP, `kotlin("android")`):**
+
+```kotlin
+dependencies {
+    implementation("io.github.drunkendealer:compose-auto-preview-annotations:1.0.0")
+    implementation(libs.compose.uiToolingPreview)
+    ksp("io.github.drunkendealer:compose-auto-preview-processor:1.0.0")
+    debugImplementation(libs.compose.uiTooling)
+}
+```
+
+> If `add("kspAndroid", ...)` fails to resolve in the IDE, use the string-invoke equivalent: `"kspAndroid"("io.github.drunkendealer:compose-auto-preview-processor:1.0.0")`. Same outcome.
 
 ### Dev loop: consuming an unreleased build
 

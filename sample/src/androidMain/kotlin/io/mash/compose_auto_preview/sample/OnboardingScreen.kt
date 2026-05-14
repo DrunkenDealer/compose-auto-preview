@@ -9,9 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import io.mash.compose_auto_preview.annotations.AutoPreview
-import io.mash.compose_auto_preview.annotations.Device
-import io.mash.compose_auto_preview.annotations.Theme
 
 sealed interface OnboardingScreenState {
     data object Welcome : OnboardingScreenState
@@ -22,6 +19,8 @@ sealed interface OnboardingScreenState {
         val Welcome: OnboardingScreenState = OnboardingScreenState.Welcome
         val CategoriesEmpty: OnboardingScreenState = CategorySelection()
         val CategoriesPicked: OnboardingScreenState = CategorySelection(selected = setOf("Mind", "Body"))
+        val CategoriesAll: OnboardingScreenState =
+            CategorySelection(selected = setOf("Mind", "Body", "Sleep", "Focus", "Energy"))
         val Complete: OnboardingScreenState = Complete(summary = "3 habits, reminders on")
     }
 }
@@ -41,12 +40,7 @@ fun OnboardingScreen(state: OnboardingScreenState, modifier: Modifier = Modifier
     }
 }
 
-@AutoPreview(
-    samples = OnboardingScreenState::class,
-    locales = ["en", "de"],
-    devices = [Device.Phone, Device.Tablet],
-    themes = [Theme.Light, Theme.Dark],
-)
+@FullMatrixPreview(samples = OnboardingScreenState::class)
 @OnboardingScreenPreviews
 @Composable
 private fun Preview(

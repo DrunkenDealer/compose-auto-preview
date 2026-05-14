@@ -14,21 +14,23 @@ internal data class AutoPreviewArgs(
     val showSystemUi: Boolean,
 ) {
     companion object {
-        fun from(annotation: KSAnnotation): AutoPreviewArgs {
-            val args = annotation.arguments.associateBy { it.name?.asString() }
-            return AutoPreviewArgs(
-                samplesType = args.getValue("samples").value as KSType,
-                locales = args["locales"]?.value.toStringList() ?: listOf("en"),
-                devices = args["devices"]?.value.toEnumNames().mapNotNull(DeviceKind::from)
-                    .ifEmpty { listOf(DeviceKind.Phone) },
-                themes = args["themes"]?.value.toEnumNames().mapNotNull(ThemeKind::from)
-                    .ifEmpty { listOf(ThemeKind.Light) },
-                backgroundColor = (args["backgroundColor"]?.value as? Long) ?: 0xFFFFFFFFL,
-                showSystemUi = (args["showSystemUi"]?.value as? Boolean) ?: false,
-            )
-        }
+        fun from(annotation: KSAnnotation): AutoPreviewArgs = fromArgs(annotation.argsMap())
+
+        fun fromArgs(args: Map<String?, Any?>): AutoPreviewArgs = AutoPreviewArgs(
+            samplesType = args.getValue("samples") as KSType,
+            locales = args["locales"].toStringList() ?: listOf("en"),
+            devices = args["devices"].toEnumNames().mapNotNull(DeviceKind::from)
+                .ifEmpty { listOf(DeviceKind.Phone) },
+            themes = args["themes"].toEnumNames().mapNotNull(ThemeKind::from)
+                .ifEmpty { listOf(ThemeKind.Light) },
+            backgroundColor = (args["backgroundColor"] as? Long) ?: 0xFFFFFFFFL,
+            showSystemUi = (args["showSystemUi"] as? Boolean) ?: false,
+        )
     }
 }
+
+internal fun KSAnnotation.argsMap(): Map<String?, Any?> =
+    arguments.associate { it.name?.asString() to it.value }
 
 internal enum class DeviceKind {
     Phone, Tablet, Foldable, Desktop;

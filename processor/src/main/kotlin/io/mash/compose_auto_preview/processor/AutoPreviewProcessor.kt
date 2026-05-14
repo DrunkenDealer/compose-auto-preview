@@ -37,28 +37,59 @@ class AutoPreviewProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val functions = resolver.getSymbolsWithAnnotation(AUTO_PREVIEW_FQN)
-            .filterIsInstance<KSFunctionDeclaration>()
-            .toList()
+        val tagged = resolver.getSymbolsWithAnnotation(AUTO_PREVIEW_FQN).toList()
 
-        val byFile = functions.groupBy { it.containingFile }
+        val direct: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = tagged
+            .filterIsInstance<KSFunctionDeclaration>()
+            .mapNotNull { fn ->
+                val ann = fn.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN } ?: return@mapNotNull null
+                fn to AutoPreviewArgs.from(ann)
+            }
+
+        val viaMeta: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = tagged
+            .filterIsInstance<KSClassDeclaration>()
+            .filter { it.classKind == ClassKind.ANNOTATION_CLASS }
+            .flatMap { metaClass ->
+                val metaFqn = metaClass.qualifiedName?.asString() ?: return@flatMap emptyList()
+                val baseAnn = metaClass.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN }
+                    ?: return@flatMap emptyList()
+                val baseArgs = baseAnn.argsMap()
+                val overridable = metaClass.primaryConstructor?.parameters
+                    ?.mapNotNull { it.name?.asString() }
+                    ?.toSet()
+                    .orEmpty()
+
+                resolver.getSymbolsWithAnnotation(metaFqn)
+                    .filterIsInstance<KSFunctionDeclaration>()
+                    .mapNotNull { fn ->
+                        val usage = fn.annotations.firstOrNull { it.fqn == metaFqn } ?: return@mapNotNull null
+                        val merged = baseArgs.toMutableMap().apply {
+                            usage.argsMap().forEach { (name, value) -> if (name in overridable) this[name] = value }
+                        }
+                        fn to AutoPreviewArgs.fromArgs(merged)
+                    }
+                    .toList()
+            }
+
+        val all = direct + viaMeta
+        val byFile = all.groupBy { it.first.containingFile }
         byFile.forEach { (file, group) ->
             if (file != null && group.size > 1) {
-                group.forEach {
+                group.forEach { (fn, _) ->
                     logger.error(
                         "Multiple @AutoPreview-annotated functions in ${file.fileName}. " +
                             "Generated names are derived from the file; rename the file or split into separate files.",
-                        it
+                        fn
                     )
                 }
             }
         }
 
-        byFile.values.filter { it.size == 1 }.flatten().forEach(::processFunction)
+        byFile.values.filter { it.size == 1 }.flatten().forEach { (fn, args) -> processFunction(fn, args) }
         return emptyList()
     }
 
-    private fun processFunction(fn: KSFunctionDeclaration) {
+    private fun processFunction(fn: KSFunctionDeclaration, args: AutoPreviewArgs) {
         val file = fn.containingFile ?: return
         if (!fn.hasAnnotation(COMPOSABLE_FQN)) {
             logger.error("@AutoPreview can only be applied to @Composable functions.", fn)
@@ -74,9 +105,6 @@ class AutoPreviewProcessor(
             return
         }
         val stateType: KSType = previewParams.single().type.resolve()
-
-        val autoPreview = fn.annotations.first { it.fqn == AUTO_PREVIEW_FQN }
-        val args = AutoPreviewArgs.from(autoPreview)
 
         val samplesClass = args.samplesType.declaration as? KSClassDeclaration ?: run {
             logger.error("samples must reference a class or object.", fn)

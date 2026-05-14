@@ -2,7 +2,7 @@ package io.mash.compose_auto_preview.annotations
 
 import kotlin.reflect.KClass
 
-@Target(AnnotationTarget.FUNCTION)
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.ANNOTATION_CLASS)
 @Retention(AnnotationRetention.SOURCE)
 annotation class AutoPreview(
     val samples: KClass<*>,

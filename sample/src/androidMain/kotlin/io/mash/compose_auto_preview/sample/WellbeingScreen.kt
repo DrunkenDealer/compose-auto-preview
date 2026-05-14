@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.mash.compose_auto_preview.annotations.AutoPreview
+import io.mash.compose_auto_preview.annotations.Device
+import io.mash.compose_auto_preview.annotations.Theme
 
 data class WellbeingScreenState(
     val isLoading: Boolean = false,
@@ -24,6 +26,9 @@ object PreviewsTest {
     val Loading = WellbeingScreenState(isLoading = true)
     val Empty = WellbeingScreenState()
     val Loaded = WellbeingScreenState(items = listOf("Meditate", "Journal", "Walk"))
+    val LoadedLong = WellbeingScreenState(
+        items = listOf("Meditate", "Journal", "Walk", "Stretch", "Hydrate", "Sleep early"),
+    )
     val Error = WellbeingScreenState(error = "Failed to load")
 }
 
@@ -44,7 +49,12 @@ fun WellbeingScreen(state: WellbeingScreenState, modifier: Modifier = Modifier) 
     }
 }
 
-@AutoPreview(samples = PreviewsTest::class)
+@AutoPreview(
+    samples = PreviewsTest::class,
+    locales = ["en", "de", "fr"],
+    devices = [Device.Phone, Device.Tablet, Device.Foldable],
+    themes = [Theme.Light, Theme.Dark],
+)
 @WellbeingScreenPreviews
 @Composable
 private fun Preview(

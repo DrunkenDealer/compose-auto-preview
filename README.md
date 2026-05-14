@@ -65,7 +65,7 @@ kotlin {
     sourceSets {
         // commonMain or androidMain — depending on where you annotate
         androidMain.dependencies {
-            implementation("io.mash:compose-auto-preview-annotations:1.0.0")
+            implementation("io.github.drunkendealer:compose-auto-preview-annotations:1.0.0")
             implementation(libs.compose.uiToolingPreview) // PreviewParameter, PreviewParameterProvider
         }
     }
@@ -73,7 +73,7 @@ kotlin {
 
 dependencies {
     // Only Android variants render `@Preview` in Studio, so wire KSP on the Android target.
-    add("kspAndroid", "io.mash:compose-auto-preview-processor:1.0.0")
+    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:1.0.0")
     // For a single-target Android module use: ksp(...)
     debugImplementation(libs.compose.uiTooling)
 }
@@ -84,7 +84,7 @@ dependencies {
 Until the artifacts land on Maven Central, install locally:
 
 ```shell
-./gradlew :annotations:publishToMavenLocal :processor:publishToMavenLocal
+./gradlew :annotations:publishToMavenLocal :processor:publishToMavenLocal -PsigningEnabled=false
 ```
 
 and add `mavenLocal()` to the consuming project's `settings.gradle.kts`:
@@ -227,3 +227,42 @@ Final preview count is `locales × devices × themes × samples.size`.
 ```shell
 ./gradlew :sample:assembleDebug
 ```
+
+## Releasing to Maven Central
+
+The `vanniktech.maven.publish` plugin is already wired in both `annotations/build.gradle.kts` and `processor/build.gradle.kts` (group `io.github.drunkendealer`, version `1.0.0`). What's left is one-time account + key setup.
+
+### Local snapshot install (no creds needed)
+
+```shell
+./gradlew :annotations:publishToMavenLocal :processor:publishToMavenLocal -PsigningEnabled=false
+```
+
+Artifacts land under `~/.m2/repository/io/github/drunkendealer/…`.
+
+### Real release to Central
+
+1. **Central Portal account** — sign up at https://central.sonatype.com. Verify the `io.github.drunkendealer` namespace by linking GitHub (auto-approves).
+2. **GPG key**:
+   ```shell
+   gpg --gen-key
+   gpg --list-secret-keys --keyid-format SHORT
+   gpg --keyserver keys.openpgp.org --send-keys <KEY_ID>
+   gpg --export-secret-keys --armor <KEY_ID>   # paste the block into the env var below
+   ```
+3. **Credentials** in `~/.gradle/gradle.properties` (never commit):
+   ```properties
+   mavenCentralUsername=<central-portal-token-user>
+   mavenCentralPassword=<central-portal-token-password>
+   signingInMemoryKey=<armored private key, single line, \n for newlines>
+   signingInMemoryKeyPassword=<gpg passphrase>
+   ```
+4. **Publish**:
+   ```shell
+   ./gradlew :annotations:publishAndReleaseToMavenCentral :processor:publishAndReleaseToMavenCentral
+   ```
+   Sync to Central takes ~30 min. The artifact coords used in the *Install* section above become live then.
+
+### CI release (optional)
+
+In GitHub Actions, set repository secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `SIGNING_IN_MEMORY_KEY`, `SIGNING_IN_MEMORY_KEY_PASSWORD` and run `./gradlew publishAndReleaseToMavenCentral` on tag push. The plugin auto-picks them up via the `ORG_GRADLE_PROJECT_` env-var convention.

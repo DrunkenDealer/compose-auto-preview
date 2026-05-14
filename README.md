@@ -39,13 +39,33 @@ private fun Preview(@PreviewParameter(MyScreenSamples::class) s: MyState) = MySc
 
 ## Version
 
-Current: **`1.0.0`**
+Current: **`1.0.0`** — available on Maven Central.
 
 ## Install
 
-Two artifacts: an annotations module (KMP — Android / iOS / JVM) and a KSP processor (JVM).
+The library ships as two artifacts and you need **both**:
 
-### 1. Add KSP and the Compose preview tooling to your app/feature module
+| Artifact | What it is | Where it goes | Lifetime |
+|---|---|---|---|
+| `compose-auto-preview-annotations` | The `@AutoPreview` / `Device` / `Theme` markers you write into your code. KMP (Android / iOS / JVM). | `implementation(...)` | Compiled into your binary. |
+| `compose-auto-preview-processor` | The KSP processor that reads those markers at build time and generates the `PreviewParameterProvider` + multi-preview annotation. JVM-only. | `ksp(...)` / `kspAndroid(...)` | Build-time only — never lands in the APK. |
+
+Same idea as `@Inject` + Dagger, or `@Serializable` + the serialization compiler plugin — the marker travels with your code, the generator runs once during compilation.
+
+### 1. Make sure `mavenCentral()` is in the consuming project's repositories
+
+In `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+```
+
+### 2. Apply the KSP plugin to the module that has your `@Composable`s
 
 `build.gradle.kts`:
 
@@ -58,7 +78,7 @@ plugins {
 }
 ```
 
-### 2. Add the dependencies
+### 3. Add the dependencies
 
 ```kotlin
 kotlin {
@@ -79,25 +99,15 @@ dependencies {
 }
 ```
 
-### 3. Repositories
+### Dev loop: consuming an unreleased build
 
-Until the artifacts land on Maven Central, install locally:
+If you're hacking on this library and want to test a not-yet-published version in another project:
 
 ```shell
 ./gradlew :annotations:publishToMavenLocal :processor:publishToMavenLocal -PsigningEnabled=false
 ```
 
-and add `mavenLocal()` to the consuming project's `settings.gradle.kts`:
-
-```kotlin
-dependencyResolutionManagement {
-    repositories {
-        mavenLocal()
-        google()
-        mavenCentral()
-    }
-}
-```
+Add `mavenLocal()` *above* `mavenCentral()` in the consuming project's `settings.gradle.kts` and bump the coords' version to whatever you set locally (e.g. `1.1.0-SNAPSHOT`).
 
 ## Usage
 

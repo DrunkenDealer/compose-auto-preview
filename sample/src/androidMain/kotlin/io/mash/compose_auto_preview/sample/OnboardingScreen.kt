@@ -1,0 +1,54 @@
+package io.mash.compose_auto_preview.sample
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.dp
+import io.mash.compose_auto_preview.annotations.AutoPreview
+import io.mash.compose_auto_preview.annotations.Device
+import io.mash.compose_auto_preview.annotations.Theme
+
+sealed interface OnboardingScreenState {
+    data object Welcome : OnboardingScreenState
+    data class CategorySelection(val selected: Set<String> = emptySet()) : OnboardingScreenState
+    data class Complete(val summary: String) : OnboardingScreenState
+
+    companion object Previews {
+        val Welcome: OnboardingScreenState = OnboardingScreenState.Welcome
+        val CategoriesEmpty: OnboardingScreenState = CategorySelection()
+        val CategoriesPicked: OnboardingScreenState = CategorySelection(selected = setOf("Mind", "Body"))
+        val Complete: OnboardingScreenState = Complete(summary = "3 habits, reminders on")
+    }
+}
+
+@Composable
+fun OnboardingScreen(state: OnboardingScreenState, modifier: Modifier = Modifier) {
+    MaterialTheme {
+        Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+            val label = when (state) {
+                OnboardingScreenState.Welcome -> "Welcome"
+                is OnboardingScreenState.CategorySelection ->
+                    if (state.selected.isEmpty()) "Pick categories" else "Picked: ${state.selected.joinToString()}"
+                is OnboardingScreenState.Complete -> "Done — ${state.summary}"
+            }
+            Text(label)
+        }
+    }
+}
+
+@AutoPreview(
+    samples = OnboardingScreenState::class,
+    locales = ["en", "de"],
+    devices = [Device.Phone, Device.Tablet],
+    themes = [Theme.Light, Theme.Dark],
+)
+@OnboardingScreenPreviews
+@Composable
+private fun Preview(
+    @PreviewParameter(OnboardingScreenSamples::class) state: OnboardingScreenState,
+) = OnboardingScreen(state)

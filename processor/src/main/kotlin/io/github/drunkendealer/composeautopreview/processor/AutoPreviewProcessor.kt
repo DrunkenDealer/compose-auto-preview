@@ -10,6 +10,8 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.ClassName
@@ -37,39 +39,42 @@ class AutoPreviewProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val tagged = resolver.getSymbolsWithAnnotation(AUTO_PREVIEW_FQN).toList()
-
-        val direct: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = tagged
+        val direct: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = resolver
+            .getSymbolsWithAnnotation(AUTO_PREVIEW_FQN)
             .filterIsInstance<KSFunctionDeclaration>()
             .mapNotNull { fn ->
                 val ann = fn.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN } ?: return@mapNotNull null
                 fn to AutoPreviewArgs.from(ann)
             }
+            .toList()
 
-        val viaMeta: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = tagged
-            .filterIsInstance<KSClassDeclaration>()
-            .filter { it.classKind == ClassKind.ANNOTATION_CLASS }
-            .flatMap { metaClass ->
-                val metaFqn = metaClass.qualifiedName?.asString() ?: return@flatMap emptyList()
-                val baseAnn = metaClass.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN }
-                    ?: return@flatMap emptyList()
-                val baseArgs = baseAnn.argsMap()
-                val overridable = metaClass.primaryConstructor?.parameters
-                    ?.mapNotNull { it.name?.asString() }
-                    ?.toSet()
-                    .orEmpty()
-
-                resolver.getSymbolsWithAnnotation(metaFqn)
-                    .filterIsInstance<KSFunctionDeclaration>()
-                    .mapNotNull { fn ->
-                        val usage = fn.annotations.firstOrNull { it.fqn == metaFqn } ?: return@mapNotNull null
-                        val merged = baseArgs.toMutableMap().apply {
-                            usage.argsMap().forEach { (name, value) -> if (name in overridable) this[name] = value }
-                        }
-                        fn to AutoPreviewArgs.fromArgs(merged)
+        // Walk current-round functions and inspect each annotation. resolver.getSymbolsWithAnnotation
+        // only scans current-module sources, so a wrapper annotation declared in another module is
+        // invisible to it; resolving the annotation type from a usage works across modules.
+        // getNewFiles() returns all sources in round 1 and only newly-generated files thereafter,
+        // matching getSymbolsWithAnnotation's "new symbols only" semantics across rounds.
+        val viaMeta: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = resolver.getNewFiles()
+            .flatMap { it.allFunctions() }
+            .flatMap { fn ->
+                fn.annotations.mapNotNull { usage ->
+                    val metaClass = usage.annotationType.resolve().declaration as? KSClassDeclaration
+                        ?: return@mapNotNull null
+                    if (metaClass.classKind != ClassKind.ANNOTATION_CLASS) return@mapNotNull null
+                    if (metaClass.qualifiedName?.asString() == AUTO_PREVIEW_FQN) return@mapNotNull null
+                    val baseAnn = metaClass.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN }
+                        ?: return@mapNotNull null
+                    val baseArgs = baseAnn.argsMap()
+                    val overridable = metaClass.primaryConstructor?.parameters
+                        ?.mapNotNull { it.name?.asString() }
+                        ?.toSet()
+                        .orEmpty()
+                    val merged = baseArgs.toMutableMap().apply {
+                        usage.argsMap().forEach { (name, value) -> if (name in overridable) this[name] = value }
                     }
-                    .toList()
+                    fn to AutoPreviewArgs.fromArgs(merged)
+                }
             }
+            .toList()
 
         val all = direct + viaMeta
         val byFile = all.groupBy { it.first.containingFile }
@@ -107,7 +112,7 @@ class AutoPreviewProcessor(
         val stateType: KSType = previewParams.single().type.resolve()
 
         val samplesClass = args.samplesType.declaration as? KSClassDeclaration ?: run {
-            logger.error("samples must reference a class or object.", fn)
+            logger.error("samplesFrom must reference a class or object.", fn)
             return
         }
 
@@ -119,7 +124,7 @@ class AutoPreviewProcessor(
         val stateSimpleName = stateType.declaration.simpleName.asString()
         if (companion == null && samplesClass.classKind != ClassKind.OBJECT) {
             logger.error(
-                "samples must reference either a class with a `companion object Previews { ... }`, " +
+                "samplesFrom must reference either a class with a `companion object Previews { ... }`, " +
                     "or an `object` declaring sample vals directly. " +
                     "${samplesClass.qualifiedName?.asString()} is neither.",
                 fn
@@ -188,3 +193,14 @@ private fun KSAnnotated.hasAnnotation(fqn: String): Boolean =
 
 private val KSAnnotation.fqn: String
     get() = annotationType.resolve().declaration.qualifiedName?.asString().orEmpty()
+
+private fun KSFile.allFunctions(): Sequence<KSFunctionDeclaration> {
+    fun walk(decls: Sequence<KSDeclaration>): Sequence<KSFunctionDeclaration> = decls.flatMap { decl ->
+        when (decl) {
+            is KSFunctionDeclaration -> sequenceOf(decl)
+            is KSClassDeclaration -> walk(decl.declarations)
+            else -> emptySequence()
+        }
+    }
+    return walk(declarations)
+}

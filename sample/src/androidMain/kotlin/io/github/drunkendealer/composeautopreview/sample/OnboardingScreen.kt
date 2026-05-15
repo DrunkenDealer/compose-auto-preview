@@ -40,7 +40,7 @@ fun OnboardingScreen(state: OnboardingScreenState, modifier: Modifier = Modifier
     }
 }
 
-@FullMatrixPreview(samples = OnboardingScreenState::class)
+@FullMatrixPreview(samplesFrom = OnboardingScreenState::class)
 @OnboardingScreenPreviews
 @Composable
 private fun Preview(

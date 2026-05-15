@@ -39,7 +39,7 @@ fun SettingsScreen(state: SettingsScreenState, modifier: Modifier = Modifier) {
 }
 
 @AutoPreview(
-    samples = SettingsScreenStateSampleData::class,
+    samplesFrom = SettingsScreenStateSampleData::class,
     locales = ["en", "de"],
     devices = [Device.Phone, Device.Tablet],
     themes = [Theme.Light, Theme.Dark],

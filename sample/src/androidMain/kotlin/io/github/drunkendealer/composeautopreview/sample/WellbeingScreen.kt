@@ -50,7 +50,7 @@ fun WellbeingScreen(state: WellbeingScreenState, modifier: Modifier = Modifier) 
 }
 
 @AutoPreview(
-    samples = PreviewsTest::class,
+    samplesFrom = PreviewsTest::class,
     locales = ["en", "de", "fr"],
     devices = [Device.Phone, Device.Tablet, Device.Foldable],
     themes = [Theme.Light, Theme.Dark],

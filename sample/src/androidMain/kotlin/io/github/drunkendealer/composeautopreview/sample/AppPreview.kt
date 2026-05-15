@@ -6,7 +6,7 @@ import io.github.drunkendealer.composeautopreview.annotations.Theme
 import kotlin.reflect.KClass
 
 @AutoPreview(
-    samples = Unit::class,
+    samplesFrom = Unit::class,
     locales = ["en", "de", "fr", "ja"],
     devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
     themes = [Theme.Light, Theme.Dark],
@@ -14,4 +14,4 @@ import kotlin.reflect.KClass
 )
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
-annotation class FullMatrixPreview(val samples: KClass<*>)
+annotation class FullMatrixPreview(val samplesFrom: KClass<*>)

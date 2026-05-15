@@ -17,7 +17,7 @@ internal data class AutoPreviewArgs(
         fun from(annotation: KSAnnotation): AutoPreviewArgs = fromArgs(annotation.argsMap())
 
         fun fromArgs(args: Map<String?, Any?>): AutoPreviewArgs = AutoPreviewArgs(
-            samplesType = args.getValue("samples") as KSType,
+            samplesType = args.getValue("samplesFrom") as KSType,
             locales = args["locales"].toStringList() ?: listOf("en"),
             devices = args["devices"].toEnumNames().mapNotNull(DeviceKind::from)
                 .ifEmpty { listOf(DeviceKind.Phone) },

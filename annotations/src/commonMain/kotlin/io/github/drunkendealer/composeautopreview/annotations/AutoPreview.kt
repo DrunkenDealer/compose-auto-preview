@@ -3,7 +3,7 @@ package io.github.drunkendealer.composeautopreview.annotations
 import kotlin.reflect.KClass
 
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.ANNOTATION_CLASS)
-@Retention(AnnotationRetention.SOURCE)
+@Retention(AnnotationRetention.BINARY)
 annotation class AutoPreview(
     val samplesFrom: KClass<*>,
     val locales: Array<String> = ["en"],

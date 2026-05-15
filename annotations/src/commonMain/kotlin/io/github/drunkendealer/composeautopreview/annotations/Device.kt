@@ -1,4 +1,4 @@
-package io.mash.compose_auto_preview.annotations
+package io.github.drunkendealer.composeautopreview.annotations
 
 enum class Device {
     Phone,

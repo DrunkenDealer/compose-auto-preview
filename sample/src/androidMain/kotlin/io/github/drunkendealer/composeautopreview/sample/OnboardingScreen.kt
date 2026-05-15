@@ -1,4 +1,4 @@
-package io.mash.compose_auto_preview.sample
+package io.github.drunkendealer.composeautopreview.sample
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize

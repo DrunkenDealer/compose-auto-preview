@@ -29,11 +29,11 @@ kotlin {
 }
 
 android {
-    namespace = "io.mash.compose_auto_preview.sample"
+    namespace = "io.github.drunkendealer.composeautopreview.sample"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.mash.compose_auto_preview.sample"
+        applicationId = "io.github.drunkendealer.composeautopreview.sample"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

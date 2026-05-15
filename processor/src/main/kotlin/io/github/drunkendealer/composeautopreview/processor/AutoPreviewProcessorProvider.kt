@@ -1,4 +1,4 @@
-package io.mash.compose_auto_preview.processor
+package io.github.drunkendealer.composeautopreview.processor
 
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment

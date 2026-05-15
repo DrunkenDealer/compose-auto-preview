@@ -1,8 +1,8 @@
-package io.mash.compose_auto_preview.sample
+package io.github.drunkendealer.composeautopreview.sample
 
-import io.mash.compose_auto_preview.annotations.AutoPreview
-import io.mash.compose_auto_preview.annotations.Device
-import io.mash.compose_auto_preview.annotations.Theme
+import io.github.drunkendealer.composeautopreview.annotations.AutoPreview
+import io.github.drunkendealer.composeautopreview.annotations.Device
+import io.github.drunkendealer.composeautopreview.annotations.Theme
 import kotlin.reflect.KClass
 
 @AutoPreview(

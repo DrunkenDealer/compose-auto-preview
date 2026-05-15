@@ -26,7 +26,7 @@ kotlin {
 }
 
 android {
-    namespace = "io.mash.compose_auto_preview.annotations"
+    namespace = "io.github.drunkendealer.composeautopreview.annotations"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -42,7 +42,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.drunkendealer",
         artifactId = "compose-auto-preview-annotations",
-        version = "1.0.0",
+        version = "2.0.0",
     )
     pom {
         name.set("Compose Auto Preview — Annotations")

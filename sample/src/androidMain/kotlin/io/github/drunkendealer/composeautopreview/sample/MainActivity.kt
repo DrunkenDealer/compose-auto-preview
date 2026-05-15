@@ -1,4 +1,4 @@
-package io.mash.compose_auto_preview.sample
+package io.github.drunkendealer.composeautopreview.sample
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

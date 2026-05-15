@@ -1,4 +1,4 @@
-package io.mash.compose_auto_preview.sample
+package io.github.drunkendealer.composeautopreview.sample
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import io.mash.compose_auto_preview.annotations.AutoPreview
-import io.mash.compose_auto_preview.annotations.Device
-import io.mash.compose_auto_preview.annotations.Theme
+import io.github.drunkendealer.composeautopreview.annotations.AutoPreview
+import io.github.drunkendealer.composeautopreview.annotations.Device
+import io.github.drunkendealer.composeautopreview.annotations.Theme
 
 data class WellbeingScreenState(
     val isLoading: Boolean = false,

@@ -1,4 +1,4 @@
-package io.mash.compose_auto_preview.processor
+package io.github.drunkendealer.composeautopreview.processor
 
 import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.isPublic
@@ -22,7 +22,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 
-private const val AUTO_PREVIEW_FQN = "io.mash.compose_auto_preview.annotations.AutoPreview"
+private const val AUTO_PREVIEW_FQN = "io.github.drunkendealer.composeautopreview.annotations.AutoPreview"
 private const val COMPOSABLE_FQN = "androidx.compose.runtime.Composable"
 private const val PREVIEW_PARAMETER_FQN = "androidx.compose.ui.tooling.preview.PreviewParameter"
 

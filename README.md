@@ -27,8 +27,8 @@ Replaces the wall of stacked `@Preview` annotations and the hand-written `Previe
 plugins { alias(libs.plugins.ksp) }
 
 dependencies {
-    implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.2")
-    ksp("io.github.drunkendealer:compose-auto-preview-processor:2.0.2")
+    implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.3")
+    ksp("io.github.drunkendealer:compose-auto-preview-processor:2.0.3")
 }
 ```
 
@@ -90,7 +90,7 @@ plugins { alias(libs.plugins.ksp) }
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.2")
+            implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.3")
         }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
@@ -99,7 +99,7 @@ kotlin {
 }
 
 dependencies {
-    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:2.0.2")
+    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:2.0.3")
 }
 ```
 

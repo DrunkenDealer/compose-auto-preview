@@ -10,8 +10,6 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.ClassName
@@ -33,6 +31,26 @@ private val PREVIEW_PARAMETER_PROVIDER =
 private val SEQUENCE = ClassName("kotlin.sequences", "Sequence")
 private val SEQUENCE_OF = MemberName("kotlin.sequences", "sequenceOf")
 
+// Annotations that can appear on @Composable functions but are never @AutoPreview wrappers.
+// Filtering by short name avoids the expensive annotationType.resolve() call.
+private val NON_WRAPPER_SHORT_NAMES = setOf(
+    "AutoPreview", // direct usage is handled by the getSymbolsWithAnnotation pass
+    "Composable",
+    "Preview",
+    "PreviewParameter",
+    "NonRestartableComposable",
+    "ReadOnlyComposable",
+    "DisallowComposableCalls",
+    "Stable",
+    "Immutable",
+    "Suppress",
+    "OptIn",
+    "Deprecated",
+    "JvmStatic",
+    "JvmOverloads",
+    "JvmName",
+)
+
 class AutoPreviewProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
@@ -48,28 +66,24 @@ class AutoPreviewProcessor(
             }
             .toList()
 
-        // Walk current-round functions and inspect each annotation. resolver.getSymbolsWithAnnotation
-        // only scans current-module sources, so a wrapper annotation declared in another module is
-        // invisible to it; resolving the annotation type from a usage works across modules.
-        // getNewFiles() returns all sources in round 1 and only newly-generated files thereafter,
-        // matching getSymbolsWithAnnotation's "new symbols only" semantics across rounds.
-        val viaMeta: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = resolver.getNewFiles()
-            .flatMap { it.allFunctions() }
+        // Scan @Composable functions in the current module for wrapper annotations meta-annotated with
+        // @AutoPreview. Wrappers can be declared in other modules, so we still resolve the annotation
+        // type from the usage — but only after a cheap short-name filter, and we memoize the wrapper
+        // lookup per round so a wrapper used N times costs one resolve, not N.
+        val wrapperCache = HashMap<KSClassDeclaration, WrapperInfo?>()
+        val viaMeta: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = resolver
+            .getSymbolsWithAnnotation(COMPOSABLE_FQN)
+            .filterIsInstance<KSFunctionDeclaration>()
             .flatMap { fn ->
                 fn.annotations.mapNotNull { usage ->
+                    if (usage.shortName.asString() in NON_WRAPPER_SHORT_NAMES) return@mapNotNull null
                     val metaClass = usage.annotationType.resolve().declaration as? KSClassDeclaration
                         ?: return@mapNotNull null
                     if (metaClass.classKind != ClassKind.ANNOTATION_CLASS) return@mapNotNull null
-                    if (metaClass.qualifiedName?.asString() == AUTO_PREVIEW_FQN) return@mapNotNull null
-                    val baseAnn = metaClass.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN }
+                    val info = wrapperCache.getOrPut(metaClass) { WrapperInfo.from(metaClass) }
                         ?: return@mapNotNull null
-                    val baseArgs = baseAnn.argsMap()
-                    val overridable = metaClass.primaryConstructor?.parameters
-                        ?.mapNotNull { it.name?.asString() }
-                        ?.toSet()
-                        .orEmpty()
-                    val merged = baseArgs.toMutableMap().apply {
-                        usage.argsMap().forEach { (name, value) -> if (name in overridable) this[name] = value }
+                    val merged = info.baseArgs.toMutableMap().apply {
+                        usage.argsMap().forEach { (name, value) -> if (name in info.overridable) this[name] = value }
                     }
                     fn to AutoPreviewArgs.fromArgs(merged)
                 }
@@ -188,19 +202,25 @@ class AutoPreviewProcessor(
     }
 }
 
+private data class WrapperInfo(
+    val baseArgs: Map<String?, Any?>,
+    val overridable: Set<String>,
+) {
+    companion object {
+        fun from(metaClass: KSClassDeclaration): WrapperInfo? {
+            if (metaClass.qualifiedName?.asString() == AUTO_PREVIEW_FQN) return null
+            val baseAnn = metaClass.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN } ?: return null
+            val overridable = metaClass.primaryConstructor?.parameters
+                ?.mapNotNull { it.name?.asString() }
+                ?.toSet()
+                .orEmpty()
+            return WrapperInfo(baseAnn.argsMap(), overridable)
+        }
+    }
+}
+
 private fun KSAnnotated.hasAnnotation(fqn: String): Boolean =
     annotations.any { it.fqn == fqn }
 
 private val KSAnnotation.fqn: String
     get() = annotationType.resolve().declaration.qualifiedName?.asString().orEmpty()
-
-private fun KSFile.allFunctions(): Sequence<KSFunctionDeclaration> {
-    fun walk(decls: Sequence<KSDeclaration>): Sequence<KSFunctionDeclaration> = decls.flatMap { decl ->
-        when (decl) {
-            is KSFunctionDeclaration -> sequenceOf(decl)
-            is KSClassDeclaration -> walk(decl.declarations)
-            else -> emptySequence()
-        }
-    }
-    return walk(declarations)
-}

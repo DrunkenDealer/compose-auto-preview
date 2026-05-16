@@ -3,7 +3,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.drunkendealer/compose-auto-preview-annotations.svg)](https://central.sonatype.com/artifact/io.github.drunkendealer/compose-auto-preview-annotations)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-A KSP processor that expands a single `@AutoPreview` into the full Compose preview matrix — locales × devices × themes × sample states — so your screen file stays small.
+One `@AutoPreview` → the full Compose preview matrix (locales × devices × themes × sample states).
 
 ```kotlin
 @AutoPreview(
@@ -18,38 +18,21 @@ private fun Preview(@PreviewParameter(SettingsScreenSamples::class) s: SettingsS
     SettingsScreen(s)
 ```
 
-That one function replaces the wall of stacked `@Preview` annotations and the hand-written `PreviewParameterProvider`.
+Replaces the wall of stacked `@Preview` annotations and the hand-written `PreviewParameterProvider`.
 
-## Install
-
-Apply KSP and add both artifacts. The annotations are KMP; the processor runs at build time only.
+## Android module
 
 ```kotlin
-plugins {
-    alias(libs.plugins.ksp)
-}
-
-kotlin {
-    sourceSets {
-        commonMain.dependencies {
-            implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.0")
-        }
-        androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-        }
-    }
-}
+// build.gradle.kts
+plugins { alias(libs.plugins.ksp) }
 
 dependencies {
-    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:2.0.0")
+    implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.2")
+    ksp("io.github.drunkendealer:compose-auto-preview-processor:2.0.2")
 }
 ```
 
-Single-target Android module? Replace the `kotlin { }` block with a plain `implementation(...)` of the annotations and use `ksp(...)` instead of `add("kspAndroid", ...)`.
-
-## Usage
-
-**1.** Declare your state and a source of samples — either a plain `object` of `val`s, or a class with `companion object Previews`:
+**1. Declare state and samples.**
 
 ```kotlin
 data class SettingsState(val notificationsEnabled: Boolean = true, val username: String = "")
@@ -61,13 +44,98 @@ object SettingsSamples {
 }
 ```
 
-**2.** Write one `@AutoPreview` function per file. The generated names — `SettingsScreenSamples` (the `PreviewParameterProvider`) and `@SettingsScreenPreviews` (the multi-preview annotation) — come from the file name. Reference them up-front; KSP fills them in on the next build.
+**2. Write the `@AutoPreview` function.** Two names are derived from the source file name — for `SettingsScreen.kt`:
 
-**3.** Build the module. The preview pane shows one cell per `locale × device × theme × sample`.
+- `SettingsScreenSamples` — the generated `PreviewParameterProvider`
+- `@SettingsScreenPreviews` — the generated multi-preview annotation
 
-## Sharing config
+Reference them up-front. They don't exist yet; KSP creates them on the next build:
 
-Move app-wide config into a wrapper that meta-annotates `@AutoPreview`:
+```kotlin
+// SettingsScreen.kt
+@AutoPreview(samplesFrom = SettingsSamples::class)
+@SettingsScreenPreviews                                              // generated
+@Composable
+private fun Preview(
+    @PreviewParameter(SettingsScreenSamples::class) s: SettingsState // generated
+) = SettingsScreen(s)
+```
+
+**3. Build.** KSP writes `SettingsScreenPreviews.kt` into `build/generated/ksp/…/`:
+
+```kotlin
+public class SettingsScreenSamples : PreviewParameterProvider<SettingsState> {
+    override val values = sequenceOf(
+        SettingsSamples.Default,
+        SettingsSamples.NotificationsOff,
+        SettingsSamples.Filled,
+    )
+}
+
+@Preview(name = "en · Phone · Light", /* … */)
+@Preview(name = "en · Phone · Dark",  /* … */)
+// …one per locale × device × theme
+public annotation class SettingsScreenPreviews
+```
+
+The Studio preview pane renders one cell per `locale × device × theme × sample`.
+
+## Kotlin Multiplatform module
+
+State and samples live in `commonMain`. The preview function (and any wrapper annotation) is `androidMain`-only — Compose Preview is Android.
+
+```kotlin
+plugins { alias(libs.plugins.ksp) }
+
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.2")
+        }
+        androidMain.dependencies {
+            implementation(libs.compose.uiToolingPreview)
+        }
+    }
+}
+
+dependencies {
+    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:2.0.2")
+}
+```
+
+```kotlin
+// commonMain/.../MoodLogScreen.kt
+@Composable
+fun MoodLogScreen(state: MoodLogState, onIntent: (MoodLogIntent) -> Unit) { /* … */ }
+
+// commonMain/.../MoodLogStateSamples.kt
+object MoodLogStateSamples {
+    val Loading = MoodLogState(isLoading = true)
+    val Loaded  = MoodLogState(items = sampleItems)
+}
+```
+
+```kotlin
+// androidMain/.../MoodLogScreen.kt
+@file:JvmName("MoodLogScreenAndroid") // disambiguates JVM class name from the commonMain file
+
+@AutoPreview(
+    samplesFrom = MoodLogStateSamples::class,
+    devices = [Device.Phone, Device.Tablet],
+    themes  = [Theme.Light, Theme.Dark],
+)
+@MoodLogScreenPreviews
+@Composable
+private fun Preview(@PreviewParameter(MoodLogScreenSamples::class) s: MoodLogState) {
+    AppTheme { MoodLogScreen(state = s, onIntent = {}) }
+}
+```
+
+The `@file:JvmName` is required only when the `androidMain` preview file shares its filename with a `commonMain` file in the same package.
+
+## Shared configuration
+
+Hoist app-wide config into a wrapper that meta-annotates `@AutoPreview`:
 
 ```kotlin
 @AutoPreview(
@@ -81,7 +149,7 @@ Move app-wide config into a wrapper that meta-annotates `@AutoPreview`:
 annotation class AppPreview(val samplesFrom: KClass<*>)
 ```
 
-Any property the wrapper declares in its constructor (typically `samplesFrom`) overrides the meta-annotation at the use site.
+Any property the wrapper declares in its constructor overrides the meta-annotation at the use site.
 
 ## `@AutoPreview` parameters
 
@@ -98,7 +166,7 @@ Final preview count: `locales × devices × themes × samples.size`.
 
 ## Requirements
 
-Kotlin 2.3.21 · KSP 2.3.8 · Compose Multiplatform 1.10.x · `minSdk` 28 · JVM 11.
+Kotlin 2.0+ · KSP 2.0+ · Jetpack Compose (Android) or Compose Multiplatform 1.7+ · `minSdk` 28 · JVM 11.
 
 ## License
 

@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,6 +8,10 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        apiVersion.set(KotlinVersion.KOTLIN_2_0)
+        languageVersion.set(KotlinVersion.KOTLIN_2_0)
+    }
     jvm()
     androidTarget {
         publishLibraryVariants("release")
@@ -42,7 +47,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.drunkendealer",
         artifactId = "compose-auto-preview-annotations",
-        version = "2.0.1",
+        version = "2.0.2",
     )
     pom {
         name.set("Compose Auto Preview — Annotations")

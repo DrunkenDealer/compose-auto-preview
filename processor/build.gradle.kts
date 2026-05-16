@@ -1,6 +1,15 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.mavenPublish)
+}
+
+kotlin {
+    compilerOptions {
+        apiVersion.set(KotlinVersion.KOTLIN_2_0)
+        languageVersion.set(KotlinVersion.KOTLIN_2_0)
+    }
 }
 
 dependencies {
@@ -15,7 +24,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.drunkendealer",
         artifactId = "compose-auto-preview-processor",
-        version = "2.0.1",
+        version = "2.0.2",
     )
     pom {
         name.set("Compose Auto Preview — KSP Processor")

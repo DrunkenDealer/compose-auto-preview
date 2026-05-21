@@ -1,6 +1,7 @@
 package io.github.drunkendealer.composeautopreview.processor
 
 import com.google.devtools.ksp.getDeclaredProperties
+import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.isPublic
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
@@ -12,29 +13,30 @@ import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 
 private const val AUTO_PREVIEW_FQN = "io.github.drunkendealer.composeautopreview.annotations.AutoPreview"
 private const val COMPOSABLE_FQN = "androidx.compose.runtime.Composable"
-private const val PREVIEW_PARAMETER_FQN = "androidx.compose.ui.tooling.preview.PreviewParameter"
 
 private val PREVIEW_PARAMETER_PROVIDER =
     ClassName("androidx.compose.ui.tooling.preview", "PreviewParameterProvider")
 private val SEQUENCE = ClassName("kotlin.sequences", "Sequence")
-private val SEQUENCE_OF = MemberName("kotlin.sequences", "sequenceOf")
 
 // Annotations that can appear on @Composable functions but are never @AutoPreview wrappers.
 // Filtering by short name avoids the expensive annotationType.resolve() call.
 private val NON_WRAPPER_SHORT_NAMES = setOf(
-    "AutoPreview", // direct usage is handled by the getSymbolsWithAnnotation pass
+    "AutoPreview",
     "Composable",
     "Preview",
     "PreviewParameter",
@@ -90,21 +92,7 @@ class AutoPreviewProcessor(
             }
             .toList()
 
-        val all = direct + viaMeta
-        val byFile = all.groupBy { it.first.containingFile }
-        byFile.forEach { (file, group) ->
-            if (file != null && group.size > 1) {
-                group.forEach { (fn, _) ->
-                    logger.error(
-                        "Multiple @AutoPreview-annotated functions in ${file.fileName}. " +
-                            "Generated names are derived from the file; rename the file or split into separate files.",
-                        fn
-                    )
-                }
-            }
-        }
-
-        byFile.values.filter { it.size == 1 }.flatten().forEach { (fn, args) -> processFunction(fn, args) }
+        (direct + viaMeta).forEach { (fn, args) -> processFunction(fn, args) }
         return emptyList()
     }
 
@@ -115,15 +103,24 @@ class AutoPreviewProcessor(
             return
         }
 
-        val previewParams = fn.parameters.filter { it.hasAnnotation(PREVIEW_PARAMETER_FQN) }
-        if (previewParams.size != 1) {
+        val visibility = fn.getVisibility()
+        if (visibility != Visibility.INTERNAL && visibility != Visibility.PUBLIC) {
             logger.error(
-                "@AutoPreview-annotated function must declare exactly one @PreviewParameter parameter (found ${previewParams.size}).",
+                "@AutoPreview function must be `internal` or `public`.",
                 fn
             )
             return
         }
-        val stateType: KSType = previewParams.single().type.resolve()
+
+        val valueParams = fn.parameters
+        if (valueParams.size != 1) {
+            logger.error(
+                "@AutoPreview function must declare exactly one value parameter (the state), found ${valueParams.size}.",
+                fn
+            )
+            return
+        }
+        val stateType: KSType = valueParams.single().type.resolve()
 
         val samplesClass = args.samplesType.declaration as? KSClassDeclaration ?: run {
             logger.error("samplesFrom must reference a class or object.", fn)
@@ -146,7 +143,7 @@ class AutoPreviewProcessor(
             return
         }
 
-        val (sourceQualifier, samples) = collectSamples(source, stateType)
+        val samples = collectSamples(source, stateType)
         if (samples.isEmpty()) {
             logger.error(
                 "No samples of type $stateSimpleName found in ${source.qualifiedName?.asString()}. " +
@@ -157,49 +154,67 @@ class AutoPreviewProcessor(
             return
         }
 
-        val fileSimpleName = file.fileName.removeSuffix(".kt")
+        val userFnName = fn.simpleName.asString()
         val packageName = fn.packageName.asString()
-        val providerClassName = ClassName(packageName, "${fileSimpleName}Samples")
-        val multiPreviewClassName = ClassName(packageName, "${fileSimpleName}Previews")
+        val multiPreviewClassName = ClassName(packageName, "${userFnName}AutoPreviews")
+        val providerClassName = ClassName(packageName, "${userFnName}SamplesProvider")
+        val sourceClassName = source.toClassName()
         val stateTypeName = stateType.toTypeName()
 
-        val sequenceOfArgs = samples.joinToString(separator = ",\n    ", prefix = "\n    ", postfix = ",\n") {
-            "$sourceQualifier.$it"
-        }
-
-        val providerSpec = TypeSpec.classBuilder(providerClassName)
-            .addSuperinterface(PREVIEW_PARAMETER_PROVIDER.parameterizedBy(stateTypeName))
-            .addProperty(
-                PropertySpec.builder("values", SEQUENCE.parameterizedBy(stateTypeName))
-                    .addModifiers(KModifier.OVERRIDE)
-                    .initializer("%M($sequenceOfArgs)", SEQUENCE_OF)
-                    .build()
-            )
-            .build()
+        val providerSpec = buildSamplesProvider(
+            providerClassName = providerClassName,
+            stateTypeName = stateTypeName,
+            samplesSource = sourceClassName,
+            samples = samples,
+        )
 
         val multiPreviewSpec = TypeSpec.annotationBuilder(multiPreviewClassName)
             .also { spec -> PreviewMatrix.build(args).forEach(spec::addAnnotation) }
             .build()
 
-        FileSpec.builder(packageName, multiPreviewClassName.simpleName)
+        val outputFileName = "${userFnName}AutoPreviews"
+        FileSpec.builder(packageName, outputFileName)
             .addType(providerSpec)
             .addType(multiPreviewSpec)
             .build()
             .writeTo(codeGenerator, aggregating = false, originatingKSFiles = listOf(file))
     }
 
+    private fun buildSamplesProvider(
+        providerClassName: ClassName,
+        stateTypeName: TypeName,
+        samplesSource: ClassName,
+        samples: List<String>,
+    ): TypeSpec {
+        val valuesType = SEQUENCE.parameterizedBy(stateTypeName)
+        val initializer = CodeBlock.builder()
+            .add("sequenceOf(\n")
+            .indent()
+            .apply {
+                samples.forEach { sample -> add("%T.%N,\n", samplesSource, sample) }
+            }
+            .unindent()
+            .add(")")
+            .build()
+        val valuesProperty = PropertySpec.builder("values", valuesType)
+            .addModifiers(KModifier.OVERRIDE)
+            .initializer(initializer)
+            .build()
+        return TypeSpec.classBuilder(providerClassName)
+            .addModifiers(KModifier.INTERNAL)
+            .addSuperinterface(PREVIEW_PARAMETER_PROVIDER.parameterizedBy(stateTypeName))
+            .addProperty(valuesProperty)
+            .build()
+    }
+
     private fun collectSamples(
         source: KSClassDeclaration,
         stateType: KSType,
-    ): Pair<String, List<String>> {
-        val sourceQualifier = source.qualifiedName?.asString() ?: source.simpleName.asString()
-        val matches = source.getDeclaredProperties()
-            .filter { it.isPublic() && !it.isMutable }
-            .filter { stateType.isAssignableFrom(it.type.resolve()) }
-            .map { it.simpleName.asString() }
-            .toList()
-        return sourceQualifier to matches
-    }
+    ): List<String> = source.getDeclaredProperties()
+        .filter { it.isPublic() && !it.isMutable }
+        .filter { stateType.isAssignableFrom(it.type.resolve()) }
+        .map { it.simpleName.asString() }
+        .toList()
 }
 
 private data class WrapperInfo(

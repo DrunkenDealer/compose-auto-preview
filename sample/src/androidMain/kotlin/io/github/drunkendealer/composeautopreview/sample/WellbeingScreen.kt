@@ -51,12 +51,11 @@ fun WellbeingScreen(state: WellbeingScreenState, modifier: Modifier = Modifier) 
 
 @AutoPreview(
     samplesFrom = PreviewsTest::class,
-    locales = ["en", "de", "fr"],
     devices = [Device.Phone, Device.Tablet, Device.Foldable],
     themes = [Theme.Light, Theme.Dark],
 )
-@WellbeingScreenPreviews
+@WellbeingScreenPreviewAutoPreviews
 @Composable
-private fun Preview(
-    @PreviewParameter(WellbeingScreenSamples::class) state: WellbeingScreenState,
+internal fun WellbeingScreenPreview(
+    @PreviewParameter(WellbeingScreenPreviewSamplesProvider::class) state: WellbeingScreenState,
 ) = WellbeingScreen(state)

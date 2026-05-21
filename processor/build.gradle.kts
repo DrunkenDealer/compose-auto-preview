@@ -24,7 +24,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.drunkendealer",
         artifactId = "compose-auto-preview-processor",
-        version = "2.0.3",
+        version = "3.1.0",
     )
     pom {
         name.set("Compose Auto Preview — KSP Processor")

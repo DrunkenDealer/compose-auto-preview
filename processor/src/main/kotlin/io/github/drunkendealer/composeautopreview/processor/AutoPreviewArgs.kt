@@ -7,7 +7,7 @@ import com.google.devtools.ksp.symbol.KSType
 
 internal data class AutoPreviewArgs(
     val samplesType: KSType,
-    val locales: List<String>,
+    val locale: String,
     val devices: List<DeviceKind>,
     val themes: List<ThemeKind>,
     val backgroundColor: Long,
@@ -18,7 +18,7 @@ internal data class AutoPreviewArgs(
 
         fun fromArgs(args: Map<String?, Any?>): AutoPreviewArgs = AutoPreviewArgs(
             samplesType = args.getValue("samplesFrom") as KSType,
-            locales = args["locales"].toStringList() ?: listOf("en"),
+            locale = (args["locale"] as? String) ?: "en",
             devices = args["devices"].toEnumNames().mapNotNull(DeviceKind::from)
                 .ifEmpty { listOf(DeviceKind.Phone) },
             themes = args["themes"].toEnumNames().mapNotNull(ThemeKind::from)
@@ -41,9 +41,6 @@ internal enum class ThemeKind {
     Light, Dark;
     companion object { fun from(name: String): ThemeKind? = entries.firstOrNull { it.name == name } }
 }
-
-private fun Any?.toStringList(): List<String>? =
-    (this as? List<*>)?.mapNotNull { it as? String }
 
 private fun Any?.toEnumNames(): List<String> =
     (this as? List<*>)?.mapNotNull { element ->

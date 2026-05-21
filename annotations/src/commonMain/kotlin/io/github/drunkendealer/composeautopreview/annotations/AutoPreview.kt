@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 @Retention(AnnotationRetention.BINARY)
 annotation class AutoPreview(
     val samplesFrom: KClass<*>,
-    val locales: Array<String> = ["en"],
+    val locale: String = "en",
     val devices: Array<Device> = [Device.Phone],
     val themes: Array<Theme> = [Theme.Light],
     val backgroundColor: Long = 0xFFFFFFFF,

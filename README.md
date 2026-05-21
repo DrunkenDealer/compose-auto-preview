@@ -3,43 +3,39 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.drunkendealer/compose-auto-preview-annotations.svg)](https://central.sonatype.com/artifact/io.github.drunkendealer/compose-auto-preview-annotations)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Compose Auto Preview isn't a replacement for Android Studio's preview system — it makes living with it cheaper. One annotation generates the full matrix of states, so you stop hand-writing `@Preview` stacks and `PreviewParameterProvider` classes. Previews stay easy to maintain and your screens become genuinely glanceable.
-
-Once set up, every state sits side by side in the preview pane. UI regressions that would normally wait for QA tend to jump out at a glance. It won't replace a QA process — but for solo developers it shortens the feedback loop a lot.
-
-One `@AutoPreview` annotation generates the full Compose preview matrix — every locale × device × theme × sample state.
+Compose Auto Preview removes the boilerplate around Compose `@Preview` matrices. One annotation generates the `device × theme × samples` matrix plus the `PreviewParameterProvider` for your state samples — you stop hand-stacking `@Preview` annotations and hand-writing provider classes.
 
 ```kotlin
 @AutoPreview(
     samplesFrom = SettingsSamples::class,
-    locales = ["en", "de"],
     devices = [Device.Phone, Device.Tablet],
     themes  = [Theme.Light, Theme.Dark],
 )
-@SettingsScreenPreviews
+@SettingsScreenPreviewAutoPreviews
 @Composable
-private fun Preview(@PreviewParameter(SettingsScreenSamples::class) s: SettingsState) =
-    SettingsScreen(s)
+internal fun SettingsScreenPreview(
+    @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,
+) = SettingsScreen(state)
 ```
 
-The snippet above produces **16 previews** (2 × 2 × 2 × 2 samples) from a single function. No stacked `@Preview` annotations. No hand-written `PreviewParameterProvider`.
+After the first build, Studio resolves the generated `@SettingsScreenPreviewAutoPreviews` annotation and `SettingsScreenPreviewSamplesProvider` class. The example above renders **20 cells** — 2 devices × 2 themes × 5 samples.
 
-## Why
+## How the matrix stays cheap
 
-Without it, a real screen preview file looks like this:
+Compose Preview's bitmap cache scales linearly with cell count. A 20-screen app rendering a full `device × locale × theme` Cartesian accumulates ~800 cells × ~3MB each ≈ **2.4 GB** of bitmaps before any cell ages out. Studio lags and eventually needs Invalidate Caches.
 
-```kotlin
-class SettingsSamples : PreviewParameterProvider<SettingsState> { /* 5 states */ }
+The library leans on one observation: of the obvious axes, **locale is the one you rarely need to multiply cells**. You verify devices side-by-side (phone vs tablet vs foldable) and themes stacked (light vs dark), but locale is usually checked one at a time. So `@AutoPreview` takes a single `locale: String` (default `"en"`) and renders the `device × theme × samples` Cartesian against that one locale.
 
-@Preview(name = "en · Phone · Light", locale = "en", device = "...", ...)
-@Preview(name = "en · Phone · Dark",  locale = "en", device = "...", uiMode = ..., ...)
-@Preview(name = "en · Tablet · Light", ...)
-// …14 more @Preview lines
-@Composable
-private fun Preview(@PreviewParameter(SettingsSamples::class) s: SettingsState) = SettingsScreen(s)
-```
+Switch the rendered locale by editing the `locale` value and rebuilding. To verify a different locale, change the field. No global flag, no Gradle property.
 
-`@AutoPreview` replaces all of that with one annotation.
+## How it works
+
+KSP generates two declarations per `@AutoPreview` function:
+
+1. **`<UserFn>SamplesProvider`** — a `PreviewParameterProvider<StateType>` returning the samples from your `samplesFrom = ...` object in declaration order.
+2. **`@<UserFn>AutoPreviews`** — a multi-preview annotation containing the `device × theme` Cartesian at the declared `locale`.
+
+You write **one** function, decorated with `@AutoPreview` (drives codegen) and the generated `@<UserFn>AutoPreviews` (drives Studio rendering). The function parameter carries `@PreviewParameter(<UserFn>SamplesProvider::class)` so Studio injects each sample.
 
 ## Android native implementation
 
@@ -48,12 +44,12 @@ private fun Preview(@PreviewParameter(SettingsSamples::class) s: SettingsState) 
 plugins { alias(libs.plugins.ksp) }
 
 dependencies {
-    implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.3")
-    ksp("io.github.drunkendealer:compose-auto-preview-processor:2.0.3")
+    implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.0")
+    ksp("io.github.drunkendealer:compose-auto-preview-processor:3.1.0")
 }
 ```
 
-**1. Define your state samples.** Any `object` with properties of the target state type works:
+**1. Define your state samples.** Any `object` with vals of the target state type works:
 
 ```kotlin
 object SettingsSamples {
@@ -63,30 +59,35 @@ object SettingsSamples {
 }
 ```
 
-**2. Write the preview.** Two names are derived from the source **file name** — for `SettingsScreen.kt`:
-
-| Generated symbol | Type | What it is |
-|---|---|---|
-| `SettingsScreenSamples` | class | The `PreviewParameterProvider` |
-| `@SettingsScreenPreviews` | annotation | The multi-preview |
-
-Reference them now even though they don't exist yet — KSP creates them on the next build:
+**2. Write the preview function.** One `@Composable` taking the state — `internal` (or `public`) so the generated provider is accessible:
 
 ```kotlin
-// SettingsScreen.kt
 @AutoPreview(samplesFrom = SettingsSamples::class)
-@SettingsScreenPreviews                                              // generated
+@SettingsScreenPreviewAutoPreviews
 @Composable
-private fun Preview(
-    @PreviewParameter(SettingsScreenSamples::class) s: SettingsState // generated
-) = SettingsScreen(s)
+internal fun SettingsScreenPreview(
+    @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,
+) = SettingsScreen(state)
 ```
 
-**3. Build.** The Studio preview pane now renders one cell per `locale × device × theme × sample`.
+First build resolves `@SettingsScreenPreviewAutoPreviews` and `SettingsScreenPreviewSamplesProvider` — both are red until KSP runs once.
+
+## Dialogs and bottom sheets
+
+`AlertDialog`, `ModalBottomSheet` and similar render in a separate window, so the `@Composable` body has no inline content to size the canvas. Wrap your preview in a `Box(Modifier.fillMaxSize())` so the dialog underlay has a canvas to draw into:
+
+```kotlin
+@AutoPreview(samplesFrom = ConfirmDialogSamples::class)
+@ConfirmDialogPreviewAutoPreviews
+@Composable
+internal fun ConfirmDialogPreview(
+    @PreviewParameter(ConfirmDialogPreviewSamplesProvider::class) state: ConfirmDialogState,
+) = Box(Modifier.fillMaxSize()) { ConfirmDialog(state) }
+```
 
 ## Kotlin Multiplatform implementation
 
-State and samples go in `commonMain`. The preview function lives in `androidMain` — Compose Preview is Android-only.
+State and samples go in `commonMain`. The `@AutoPreview` function lives in `androidMain` (where KSP runs) — Compose Preview is Android-only.
 
 ```kotlin
 plugins { alias(libs.plugins.ksp) }
@@ -94,7 +95,7 @@ plugins { alias(libs.plugins.ksp) }
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("io.github.drunkendealer:compose-auto-preview-annotations:2.0.3")
+            implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.0")
         }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
@@ -103,47 +104,17 @@ kotlin {
 }
 
 dependencies {
-    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:2.0.3")
+    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:3.1.0")
 }
 ```
-
-```kotlin
-// commonMain/.../MoodLogScreen.kt
-@Composable
-fun MoodLogScreen(state: MoodLogState, onIntent: (MoodLogIntent) -> Unit) { /* … */ }
-
-object MoodLogSamples {
-    val Loading = MoodLogState(isLoading = true)
-    val Loaded  = MoodLogState(items = sampleItems)
-}
-```
-
-```kotlin
-// androidMain/.../MoodLogScreen.kt
-@file:JvmName("MoodLogScreenAndroid")
-
-@AutoPreview(
-    samplesFrom = MoodLogSamples::class,
-    devices = [Device.Phone, Device.Tablet],
-    themes  = [Theme.Light, Theme.Dark],
-)
-@MoodLogScreenPreviews
-@Composable
-private fun Preview(@PreviewParameter(MoodLogScreenSamples::class) s: MoodLogState) {
-    AppTheme { MoodLogScreen(state = s, onIntent = {}) }
-}
-```
-
-> `@file:JvmName(...)` is only required when the `androidMain` file shares its name **and** package with a `commonMain` file — without it, the two would compile to the same JVM class name.
 
 ## Shared config across screens
 
-Most apps want the same locales, devices and themes for every screen. Hoist the config into a wrapper annotation:
+Most apps want the same devices and themes for every screen. Hoist the config into a wrapper annotation:
 
 ```kotlin
 @AutoPreview(
     samplesFrom = Unit::class, // placeholder — overridden at use site
-    locales = ["en", "de", "fr", "ja"],
     devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
     themes  = [Theme.Light, Theme.Dark],
 )
@@ -152,24 +123,25 @@ Most apps want the same locales, devices and themes for every screen. Hoist the 
 annotation class AppPreview(val samplesFrom: KClass<*>)
 ```
 
-Now each screen only declares what's specific to it:
+Each screen declares only what's specific to it:
 
 ```kotlin
 @AppPreview(samplesFrom = SettingsSamples::class)
-@SettingsScreenPreviews
+@SettingsScreenPreviewAutoPreviews
 @Composable
-private fun Preview(@PreviewParameter(SettingsScreenSamples::class) s: SettingsState) =
-    SettingsScreen(s)
+internal fun SettingsScreenPreview(
+    @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,
+) = SettingsScreen(state)
 ```
 
-Any parameter declared in the wrapper's constructor overrides the meta-annotation's value at the use site. Works the same way in both Android-only and KMP modules.
+Any parameter declared in the wrapper's constructor overrides the meta-annotation's value at the use site.
 
 ## `@AutoPreview` parameters
 
 | Parameter         | Type            | Default              |
 |-------------------|-----------------|----------------------|
 | `samplesFrom`     | `KClass<*>`     | —                    |
-| `locales`         | `Array<String>` | `["en"]`             |
+| `locale`          | `String`        | `"en"`               |
 | `devices`         | `Array<Device>` | `[Device.Phone]`     |
 | `themes`          | `Array<Theme>`  | `[Theme.Light]`      |
 | `backgroundColor` | `Long`          | `0xFFFFFFFF` (white) |
@@ -177,7 +149,12 @@ Any parameter declared in the wrapper's constructor overrides the meta-annotatio
 
 `Device` values: `Phone`, `Tablet`, `Foldable`, `Desktop`. `Theme` values: `Light`, `Dark`.
 
-Total previews per function: `locales × devices × themes × samples.size`.
+Cells in the preview pane: `devices × themes × samples`. All device specs render at `dpi=160` (mdpi) regardless of physical-device density to keep bitmaps as small as possible.
+
+## Caveats
+
+- **First-build red squigglies.** `@<Name>AutoPreviews` and `<Name>SamplesProvider` don't exist until KSP runs. Type them, build once, Studio resolves them.
+- **Switching the rendered locale** is a source edit: change the `locale` value and let KSP regenerate.
 
 ## Requirements
 

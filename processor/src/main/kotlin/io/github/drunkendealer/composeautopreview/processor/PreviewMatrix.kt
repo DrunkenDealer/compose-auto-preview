@@ -10,29 +10,19 @@ internal object PreviewMatrix {
     private const val DEFAULT_BACKGROUND_COLOR = 0xFFFFFFFFL
 
     fun build(args: AutoPreviewArgs): List<AnnotationSpec> =
-        args.locales.flatMap { locale ->
-            args.devices.flatMap { device ->
-                args.themes.map { theme -> previewSpec(locale, device, theme, args) }
-            }
+        args.devices.flatMap { device ->
+            args.themes.map { theme -> previewSpec(device, theme, args) }
         }
 
     private fun previewSpec(
-        locale: String,
         device: DeviceKind,
         theme: ThemeKind,
         args: AutoPreviewArgs,
     ): AnnotationSpec {
-        val spec = device.deviceSpec
-        // widthDp/heightDp force a fixed preview canvas even when the composable's inline content
-        // is empty (e.g. a screen whose root is a Dialog or ModalBottomSheet, which render in a
-        // separate window). Without them the canvas wraps to content size and the dialog/sheet has
-        // nowhere to draw. `device` alone supplies dpi but not canvas size when showSystemUi=false.
         val builder = AnnotationSpec.builder(PREVIEW)
-            .addMember("name = %S", "$locale · ${device.name} · ${theme.name}")
-            .addMember("locale = %S", locale)
-            .addMember("device = %S", spec.spec)
-            .addMember("widthDp = %L", spec.widthDp)
-            .addMember("heightDp = %L", spec.heightDp)
+            .addMember("name = %S", "${args.locale} · ${device.name} · ${theme.name}")
+            .addMember("locale = %S", args.locale)
+            .addMember("device = %S", device.deviceSpec)
         if (theme == ThemeKind.Dark) {
             builder.addMember("uiMode = %T.UI_MODE_NIGHT_YES", CONFIGURATION)
         }
@@ -46,13 +36,11 @@ internal object PreviewMatrix {
         return builder.build()
     }
 
-    private data class DeviceSpec(val spec: String, val widthDp: Int, val heightDp: Int)
-
-    private val DeviceKind.deviceSpec: DeviceSpec
+    private val DeviceKind.deviceSpec: String
         get() = when (this) {
-            DeviceKind.Phone    -> DeviceSpec("spec:width=411dp,height=891dp",           411,  891)
-            DeviceKind.Tablet   -> DeviceSpec("spec:width=1280dp,height=800dp,dpi=240",  1280, 800)
-            DeviceKind.Foldable -> DeviceSpec("spec:width=673dp,height=841dp",           673,  841)
-            DeviceKind.Desktop  -> DeviceSpec("spec:width=1920dp,height=1080dp,dpi=160", 1920, 1080)
+            DeviceKind.Phone    -> "spec:width=411dp,height=891dp,dpi=160"
+            DeviceKind.Tablet   -> "spec:width=1280dp,height=800dp,dpi=160"
+            DeviceKind.Foldable -> "spec:width=673dp,height=841dp,dpi=160"
+            DeviceKind.Desktop  -> "spec:width=1920dp,height=1080dp,dpi=160"
         }
 }

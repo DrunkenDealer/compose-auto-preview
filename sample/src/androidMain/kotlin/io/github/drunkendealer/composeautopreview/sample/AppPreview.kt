@@ -7,7 +7,7 @@ import kotlin.reflect.KClass
 
 @AutoPreview(
     samplesFrom = Unit::class,
-    locales = ["en", "de", "fr", "ja"],
+    locale = "en",
     devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
     themes = [Theme.Light, Theme.Dark],
     showSystemUi = true,

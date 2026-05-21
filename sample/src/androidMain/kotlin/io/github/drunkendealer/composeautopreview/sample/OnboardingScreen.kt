@@ -9,6 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import io.github.drunkendealer.composeautopreview.annotations.AutoPreview
+import io.github.drunkendealer.composeautopreview.annotations.Device
+import io.github.drunkendealer.composeautopreview.annotations.Theme
 
 sealed interface OnboardingScreenState {
     data object Welcome : OnboardingScreenState
@@ -40,9 +43,15 @@ fun OnboardingScreen(state: OnboardingScreenState, modifier: Modifier = Modifier
     }
 }
 
-@FullMatrixPreview(samplesFrom = OnboardingScreenState::class)
-@OnboardingScreenPreviews
+@AutoPreview(
+    samplesFrom = OnboardingScreenState::class,
+    locale = "fr",
+    devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
+    themes = [Theme.Light, Theme.Dark],
+    showSystemUi = true,
+)
+@OnboardingScreenPreviewAutoPreviews
 @Composable
-private fun Preview(
-    @PreviewParameter(OnboardingScreenSamples::class) state: OnboardingScreenState,
+internal fun OnboardingScreenPreview(
+    @PreviewParameter(OnboardingScreenPreviewSamplesProvider::class) state: OnboardingScreenState,
 ) = OnboardingScreen(state)

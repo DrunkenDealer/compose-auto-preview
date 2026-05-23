@@ -47,7 +47,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.drunkendealer",
         artifactId = "compose-auto-preview-annotations",
-        version = "3.1.0",
+        version = "3.1.1",
     )
     pom {
         name.set("Compose Auto Preview — Annotations")

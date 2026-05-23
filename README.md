@@ -44,8 +44,8 @@ You write **one** function, decorated with `@AutoPreview` (drives codegen) and t
 plugins { alias(libs.plugins.ksp) }
 
 dependencies {
-    implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.0")
-    ksp("io.github.drunkendealer:compose-auto-preview-processor:3.1.0")
+    implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.1")
+    ksp("io.github.drunkendealer:compose-auto-preview-processor:3.1.1")
 }
 ```
 
@@ -95,7 +95,7 @@ plugins { alias(libs.plugins.ksp) }
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.0")
+            implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.1")
         }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
@@ -104,7 +104,7 @@ kotlin {
 }
 
 dependencies {
-    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:3.1.0")
+    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:3.1.1")
 }
 ```
 

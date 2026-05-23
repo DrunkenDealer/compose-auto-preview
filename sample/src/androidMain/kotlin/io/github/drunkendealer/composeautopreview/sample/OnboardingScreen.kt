@@ -50,7 +50,7 @@ fun OnboardingScreen(state: OnboardingScreenState, modifier: Modifier = Modifier
     themes = [Theme.Light, Theme.Dark],
     showSystemUi = true,
 )
-@OnboardingScreenPreviewAutoPreviews
+@OnboardingScreenAutoPreviews
 @Composable
 internal fun OnboardingScreenPreview(
     @PreviewParameter(OnboardingScreenPreviewSamplesProvider::class) state: OnboardingScreenState,

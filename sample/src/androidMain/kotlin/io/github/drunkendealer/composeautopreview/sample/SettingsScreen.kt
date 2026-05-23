@@ -84,7 +84,7 @@ fun SettingsScreen(state: SettingsScreenState, modifier: Modifier = Modifier) {
     themes = [Theme.Light, Theme.Dark],
     backgroundColor = 0xFFF5F5F5,
 )
-@SettingsScreenPreviewAutoPreviews
+@SettingsScreenAutoPreviews
 @Composable
 internal fun SettingsScreenPreview(
     @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsScreenState,

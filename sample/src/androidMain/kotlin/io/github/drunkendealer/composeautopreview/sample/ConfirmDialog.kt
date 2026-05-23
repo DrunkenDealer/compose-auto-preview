@@ -57,7 +57,7 @@ fun ConfirmDialog(state: ConfirmDialogState, onConfirm: () -> Unit = {}, onDismi
     devices = [Device.Phone, Device.Tablet],
     themes = [Theme.Light, Theme.Dark],
 )
-@ConfirmDialogPreviewAutoPreviews
+@ConfirmDialogAutoPreviews
 @Composable
 internal fun ConfirmDialogPreview(
     @PreviewParameter(ConfirmDialogPreviewSamplesProvider::class) state: ConfirmDialogState,

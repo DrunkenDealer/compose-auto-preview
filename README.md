@@ -11,14 +11,14 @@ Compose Auto Preview removes the boilerplate around Compose `@Preview` matrices.
     devices = [Device.Phone, Device.Tablet],
     themes  = [Theme.Light, Theme.Dark],
 )
-@SettingsScreenPreviewAutoPreviews
+@SettingsScreenAutoPreviews
 @Composable
 internal fun SettingsScreenPreview(
     @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,
 ) = SettingsScreen(state)
 ```
 
-After the first build, Studio resolves the generated `@SettingsScreenPreviewAutoPreviews` annotation and `SettingsScreenPreviewSamplesProvider` class. The example above renders **20 cells** — 2 devices × 2 themes × 5 samples.
+After the first build, Studio resolves the generated `@SettingsScreenAutoPreviews` annotation and `SettingsScreenPreviewSamplesProvider` class. The example above renders **20 cells** — 2 devices × 2 themes × 5 samples.
 
 ## How the matrix stays cheap
 
@@ -63,14 +63,14 @@ object SettingsSamples {
 
 ```kotlin
 @AutoPreview(samplesFrom = SettingsSamples::class)
-@SettingsScreenPreviewAutoPreviews
+@SettingsScreenAutoPreviews
 @Composable
 internal fun SettingsScreenPreview(
     @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,
 ) = SettingsScreen(state)
 ```
 
-First build resolves `@SettingsScreenPreviewAutoPreviews` and `SettingsScreenPreviewSamplesProvider` — both are red until KSP runs once.
+First build resolves `@SettingsScreenAutoPreviews` and `SettingsScreenPreviewSamplesProvider` — both are red until KSP runs once.
 
 ## Dialogs and bottom sheets
 
@@ -78,7 +78,7 @@ First build resolves `@SettingsScreenPreviewAutoPreviews` and `SettingsScreenPre
 
 ```kotlin
 @AutoPreview(samplesFrom = ConfirmDialogSamples::class)
-@ConfirmDialogPreviewAutoPreviews
+@ConfirmDialogAutoPreviews
 @Composable
 internal fun ConfirmDialogPreview(
     @PreviewParameter(ConfirmDialogPreviewSamplesProvider::class) state: ConfirmDialogState,
@@ -127,7 +127,7 @@ Each screen declares only what's specific to it:
 
 ```kotlin
 @AppPreview(samplesFrom = SettingsSamples::class)
-@SettingsScreenPreviewAutoPreviews
+@SettingsScreenAutoPreviews
 @Composable
 internal fun SettingsScreenPreview(
     @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,

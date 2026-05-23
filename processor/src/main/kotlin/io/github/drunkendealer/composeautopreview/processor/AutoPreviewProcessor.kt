@@ -155,8 +155,9 @@ class AutoPreviewProcessor(
         }
 
         val userFnName = fn.simpleName.asString()
+        val annotationBaseName = userFnName.removeSuffix("Preview")
         val packageName = fn.packageName.asString()
-        val multiPreviewClassName = ClassName(packageName, "${userFnName}AutoPreviews")
+        val multiPreviewClassName = ClassName(packageName, "${annotationBaseName}AutoPreviews")
         val providerClassName = ClassName(packageName, "${userFnName}SamplesProvider")
         val sourceClassName = source.toClassName()
         val stateTypeName = stateType.toTypeName()
@@ -172,7 +173,7 @@ class AutoPreviewProcessor(
             .also { spec -> PreviewMatrix.build(args).forEach(spec::addAnnotation) }
             .build()
 
-        val outputFileName = "${userFnName}AutoPreviews"
+        val outputFileName = "${annotationBaseName}AutoPreviews"
         FileSpec.builder(packageName, outputFileName)
             .addType(providerSpec)
             .addType(multiPreviewSpec)

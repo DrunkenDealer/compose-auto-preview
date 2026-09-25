@@ -3,7 +3,6 @@ const screens = DATA.screens;
 const byId = new Map(screens.map(s => [s.id, s]));
 const $ = id => document.getElementById(id);
 const page = $("page");
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const store = {
   get(key) { try { return localStorage.getItem("autopreview." + key); } catch { return null; } },
@@ -95,15 +94,14 @@ function notices() {
 }
 
 // ---- Graph --------------------------------------------------------------------------------
-// Force layout after d3-force: velocity Verlet with many-body repulsion, link springs, collision and a
-// radial force placing each screen on the ring of its hop count, with the entry point pinned at the centre.
+// Layered layout after Sugiyama et al., as in Graphviz dot and ELK Layered: screens sit in columns by hop count from the
+// entry point, links pointing backwards are reversed for layout, long links get waypoints in the columns they cross,
+// barycenter sweeps reduce crossings, and links run between columns as curves leaving right and entering left.
 const graph = (() => {
   const viewport = $("viewport"), world = $("world"), svg = $("edges");
-  const ALPHA_MIN = 0.001, ALPHA_DECAY = 1 - Math.pow(0.001, 1 / 300), VELOCITY_DECAY = 0.4;
-  const CHARGE = -1400, CHARGE_MAX = 900, LINK_DISTANCE = 230, RING = 300, RADIAL = 0.3, LABEL_HEIGHT = 32, TAG_HEIGHT = 34;
-  const sim = { alpha: 1, alphaTarget: 0 };
+  const COL_GAP = 160, ROW_GAP = 40, WAYPOINT_H = 12, FLAT_BULGE = 56, LABEL_HEIGHT = 32, TAG_HEIGHT = 34;
   const cam = { x: 0, y: 0, k: 1 };
-  let cameraTouched = false, frame = 0, gesture = null;
+  let cameraTouched = false, gesture = null;
 
   const rootId = entry ? entry.id : null;
   const nodes = ordered.map(screen => {
@@ -112,102 +110,137 @@ const graph = (() => {
     let h = screen.id === rootId ? 180 : 116 + 14 * Math.min(incoming(screen.id).length, 3);
     let w = h * ratio;
     if (w > 240) { w = 240; h = w / ratio; }
-    const full = h + LABEL_HEIGHT + (screen.id === rootId ? TAG_HEIGHT : 0);
-    return { id: screen.id, screen, tw: w, th: h, w: Math.max(w, 80), h: full, vx: 0, vy: 0, x: 0, y: 0,
-      r: Math.max(w, full) / 2 + 18 };
+    const tag = screen.id === rootId ? TAG_HEIGHT : 0, full = h + LABEL_HEIGHT + tag;
+    // off: from the box centre to the thumbnail centre, where links attach.
+    return { id: screen.id, screen, rank: hops(screen.id), tw: w, th: h, w: Math.max(w, 80), h: full,
+      off: tag + h / 2 - full / 2, x: 0, y: 0, prev: [], next: [] };
   });
   const nodeById = new Map(nodes.map(n => [n.id, n]));
-  const links = edges.map(e => ({ ...e, s: nodeById.get(e.source), t: nodeById.get(e.target),
-    curved: edges.some(o => o.source === e.target && o.target === e.source) }));
-  const degree = id => links.filter(l => l.source === id || l.target === id).length;
-  links.forEach(l => {
-    const cs = degree(l.source), ct = degree(l.target);
-    l.strength = 1 / Math.min(cs, ct);
-    l.bias = cs / (cs + ct);
-  });
-  const neighbours = id => new Set([id, ...outgoing(id), ...incoming(id)]);
+  const anchor = v => v.y + v.off;
+  const thumbTop = n => n.y - n.h / 2 + (n.id === rootId ? TAG_HEIGHT : 0);
 
-  // Deterministic start: spread each ring evenly so the simulation only needs to untangle.
-  const rings = new Map();
-  for (const n of nodes) {
-    const d = hops(n.id);
-    if (!rings.has(d)) rings.set(d, []);
-    rings.get(d).push(n);
+  // A two-way pair becomes one link with arrows on both ends. Every link is laid out towards higher ranks.
+  const pairs = new Set(edges.map(e => e.source + "\n" + e.target));
+  const links = [];
+  for (const e of edges) {
+    const both = pairs.has(e.target + "\n" + e.source);
+    if (both && e.source > e.target) continue;
+    let s = nodeById.get(e.source), t = nodeById.get(e.target);
+    const flip = t.rank < s.rank;
+    if (flip) [s, t] = [t, s];
+    links.push({ source: e.source, target: e.target, s, t, both, flat: s.rank === t.rank, via: [],
+      back: flip && !both, arrowStart: both || flip, arrowEnd: both || !flip });
   }
-  rings.forEach((ring, d) => ring.forEach((n, i) => {
-    const angle = (i / ring.length) * 2 * Math.PI + d * 0.6;
-    n.x = Math.cos(angle) * d * RING;
-    n.y = Math.sin(angle) * d * RING;
-  }));
-  if (rootId) { const root = nodeById.get(rootId); root.fx = root.fy = 0; }
 
-  function tick() {
-    sim.alpha += (sim.alphaTarget - sim.alpha) * ALPHA_DECAY;
-    const alpha = sim.alpha;
-    for (let i = 0; i < nodes.length; i++) {
-      const a = nodes[i];
-      for (let j = i + 1; j < nodes.length; j++) {
-        const b = nodes[j];
-        let x = b.x - a.x, y = b.y - a.y, l = x * x + y * y;
-        if (l === 0) { x = (Math.random() - .5) * 1e-6; y = (Math.random() - .5) * 1e-6; l = x * x + y * y; }
-        if (l > CHARGE_MAX * CHARGE_MAX) continue;
-        const f = CHARGE * alpha / l;
-        a.vx += x * f; a.vy += y * f;
-        b.vx -= x * f; b.vy -= y * f;
+  const layers = [];
+  const place = v => (layers[v.rank] ??= []).push(v);
+  nodes.forEach(place);
+  for (const l of links) {
+    if (l.flat) continue;
+    for (let r = l.s.rank + 1; r < l.t.rank; r++) {
+      const d = { rank: r, waypoint: true, w: 0, h: WAYPOINT_H, off: 0, x: 0, y: 0, prev: [], next: [] };
+      l.via.push(d);
+      place(d);
+    }
+    const chain = [l.s, ...l.via, l.t];
+    for (let i = 1; i < chain.length; i++) { chain[i - 1].next.push(chain[i]); chain[i].prev.push(chain[i - 1]); }
+  }
+
+  const index = () => layers.forEach(layer => layer.forEach((v, i) => v.order = i));
+  function crossings() {
+    let c = 0;
+    for (const layer of layers) {
+      const segs = layer.flatMap(v => v.next.map(w => [v.order, w.order]));
+      for (let i = 0; i < segs.length; i++)
+        for (let j = i + 1; j < segs.length; j++) if ((segs[i][0] - segs[j][0]) * (segs[i][1] - segs[j][1]) < 0) c++;
+    }
+    return c;
+  }
+  const mean = (vs, f) => vs.reduce((a, v) => a + f(v), 0) / vs.length;
+  index();
+  let best = crossings(), bestLayers = layers.map(l => [...l]);
+  for (let i = 0; i < 12 && best; i++) {
+    const down = i % 2 === 0;
+    for (const layer of down ? layers.slice(1) : layers.slice(0, -1).reverse()) {
+      for (const v of layer) { const adj = down ? v.prev : v.next; v.bc = adj.length ? mean(adj, w => w.order) : v.order; }
+      layer.sort((a, b) => a.bc - b.bc).forEach((v, k) => v.order = k);
+    }
+    const c = crossings();
+    if (c < best) { best = c; bestLayers = layers.map(l => [...l]); }
+  }
+  bestLayers.forEach((l, r) => layers[r] = l);
+  index();
+
+  // Columns left to right; within a column, keep the order and pull each vertex towards its neighbours.
+  let colX = 0;
+  for (const layer of layers) {
+    const w = Math.max(...layer.map(v => v.w));
+    layer.forEach(v => v.x = colX + w / 2);
+    colX += w + COL_GAP;
+  }
+  const gap = (a, b) => (a.h + b.h) / 2 + (a.waypoint && b.waypoint ? WAYPOINT_H : ROW_GAP);
+  function settle(layer, want) {
+    layer.forEach((v, k) => v.y = want[k] - v.off);
+    for (let k = 1; k < layer.length; k++) layer[k].y = Math.max(layer[k].y, layer[k - 1].y + gap(layer[k - 1], layer[k]));
+    const shift = mean(layer, v => want[v.order] - anchor(v));
+    layer.forEach(v => v.y += shift);
+  }
+  for (const layer of layers) settle(layer, layer.map(() => 0));
+  for (let i = 0; i < 10; i++) {
+    for (const layer of i % 2 ? [...layers].reverse() : layers) {
+      settle(layer, layer.map(v => {
+        const adj = [...v.prev, ...v.next];
+        return adj.length ? mean(adj, anchor) : anchor(v);
+      }));
+    }
+  }
+  for (const n of nodes) { n.lx = n.x; n.ly = n.y; }
+
+  // Links attach to the thumbnail's sides, spread along them by the angle they head off at, so they never cross at a node.
+  // A same-column link bulges only FLAT_BULGE sideways, so it turns up or down sooner than a link to the next column.
+  const route = l => l.s.moved || l.t.moved ? [] : l.via;
+  function attach() {
+    const sides = new Map(nodes.map(n => [n, { left: [], right: [] }]));
+    for (const l of links) {
+      const via = route(l);
+      const towards = (from, to, v = to) => Math.atan2(anchor(v) - anchor(from), Math.abs(v.x - from.x) || FLAT_BULGE);
+      // A screen dragged past the other end flips the link to the facing sides instead of looping through both.
+      l.rev = !l.flat && l.t.x < l.s.x;
+      sides.get(l.s)[l.rev ? "left" : "right"].push({ l, end: 0, key: towards(l.s, l.t, via[0]) });
+      sides.get(l.t)[l.flat || l.rev ? "right" : "left"].push({ l, end: 1, key: towards(l.t, l.s, via.at(-1)) });
+    }
+    for (const [n, { left, right }] of sides) {
+      for (const [list, dir] of [[left, -1], [right, 1]]) {
+        list.sort((a, b) => a.key - b.key).forEach((p, i) => {
+          const arrow = p.end ? p.l.arrowEnd : p.l.arrowStart;
+          const point = [n.x + dir * (n.tw / 2 + (arrow ? 5 : 2)), thumbTop(n) + n.th * (0.15 + 0.7 * (i + 0.5) / list.length)];
+          if (p.end) p.l.p1 = point; else p.l.p0 = point;
+        });
       }
     }
-    for (const link of links) {
-      const { s, t } = link;
-      const x = t.x + t.vx - s.x - s.vx || 1e-6, y = t.y + t.vy - s.y - s.vy || 1e-6;
-      const l = Math.hypot(x, y), k = (l - LINK_DISTANCE) / l * alpha * link.strength;
-      t.vx -= x * k * link.bias; t.vy -= y * k * link.bias;
-      s.vx += x * k * (1 - link.bias); s.vy += y * k * (1 - link.bias);
+  }
+  function edgePath(l) {
+    const [x0, y0] = l.p0, [x1, y1] = l.p1;
+    if (l.flat) { const bx = Math.max(x0, x1) + FLAT_BULGE; return `M${x0} ${y0}C${bx} ${y0} ${bx} ${y1} ${x1} ${y1}`; }
+    const pts = [l.p0, ...route(l).map(d => [d.x, d.y]), l.p1];
+    let d = `M${x0} ${y0}`;
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i], dx = Math.max(Math.abs(bx - ax) / 2, 40) * (l.rev ? -1 : 1);
+      d += `C${ax + dx} ${ay} ${bx - dx} ${by} ${bx} ${by}`;
     }
-    for (const n of nodes) {
-      const target = hops(n.id) * RING, l = Math.hypot(n.x, n.y) || 1e-6, k = (target - l) * RADIAL * alpha / l;
-      n.vx += n.x * k; n.vy += n.y * k;
-    }
-    for (let i = 0; i < nodes.length; i++) {
-      const a = nodes[i];
-      for (let j = i + 1; j < nodes.length; j++) {
-        const b = nodes[j];
-        const x = b.x + b.vx - a.x - a.vx, y = b.y + b.vy - a.y - a.vy, l = Math.hypot(x, y) || 1e-6, min = a.r + b.r;
-        if (l >= min) continue;
-        const k = (min - l) / l * 0.35;
-        a.vx -= x * k; a.vy -= y * k;
-        b.vx += x * k; b.vy += y * k;
-      }
-    }
-    for (const n of nodes) {
-      if (n.fx != null) { n.x = n.fx; n.vx = 0; } else { n.x += n.vx *= 1 - VELOCITY_DECAY; }
-      if (n.fy != null) { n.y = n.fy; n.vy = 0; } else { n.y += n.vy *= 1 - VELOCITY_DECAY; }
-    }
+    return d;
   }
 
-  // Edges attach to the thumbnail's width and the full height down to the label, so arrowheads stay visible.
-  function boundary(n, ux, uy, pad) {
-    const hw = n.tw / 2 + pad, hh = n.h / 2 + pad;
-    const s = Math.min(ux ? hw / Math.abs(ux) : Infinity, uy ? hh / Math.abs(uy) : Infinity);
-    return [n.x + ux * s, n.y + uy * s];
-  }
-  function edgePath({ s, t, curved }) {
-    // Nodes dropped exactly on each other have no direction; point the edge down instead of producing NaN.
-    const [dx, dy] = t.x !== s.x || t.y !== s.y ? [t.x - s.x, t.y - s.y] : [0, 1], len = Math.hypot(dx, dy);
-    if (!curved) {
-      const [x1, y1] = boundary(s, dx / len, dy / len, 4), [x2, y2] = boundary(t, -dx / len, -dy / len, 6);
-      return `M${x1} ${y1}L${x2} ${y2}`;
-    }
-    // Two-way navigation: bend each direction to its own side.
-    const cx = (s.x + t.x) / 2 - dy / len * 60, cy = (s.y + t.y) / 2 + dx / len * 60;
-    const towards = n => { const x = cx - n.x, y = cy - n.y, l = Math.hypot(x, y) || 1; return [x / l, y / l]; };
-    const [x1, y1] = boundary(s, ...towards(s), 4), [x2, y2] = boundary(t, ...towards(t), 6);
-    return `M${x1} ${y1}Q${cx} ${cy} ${x2} ${y2}`;
-  }
-
-  for (const link of links) {
-    link.path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    link.path.setAttribute("class", "edge");
-    svg.append(link.path);
+  const SVG = "http://www.w3.org/2000/svg";
+  for (const l of links) {
+    l.g = document.createElementNS(SVG, "g");
+    // A background-coloured casing under each link cuts the links beneath it, so crossings read as over/under.
+    l.casing = document.createElementNS(SVG, "path");
+    l.casing.setAttribute("class", "edge-casing");
+    l.path = document.createElementNS(SVG, "path");
+    l.path.setAttribute("class", ["edge", l.back && "back", l.arrowStart && "start", l.arrowEnd && "end"].filter(Boolean).join(" "));
+    l.g.append(l.casing, l.path);
+    svg.append(l.g);
   }
   for (const n of nodes) {
     const failed = failures(n.screen);
@@ -234,7 +267,14 @@ const graph = (() => {
 
   function draw() {
     for (const n of nodes) n.el.style.transform = `translate(${n.x - n.w / 2}px,${n.y - n.h / 2}px)`;
-    for (const l of links) l.path.setAttribute("d", edgePath(l));
+    attach();
+    for (const l of links) { const d = edgePath(l); l.casing.setAttribute("d", d); l.path.setAttribute("d", d); }
+  }
+  function relayout() {
+    for (const n of nodes) { n.x = n.lx; n.y = n.ly; n.moved = false; }
+    draw();
+    cameraTouched = false;
+    fit();
   }
   function applyCamera() {
     world.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${cam.k})`;
@@ -257,8 +297,13 @@ const graph = (() => {
   function fit() {
     const W = viewport.clientWidth, H = viewport.clientHeight;
     if (!W || !H || !nodes.length) return;
-    const minX = Math.min(...nodes.map(n => n.x - n.w / 2)), maxX = Math.max(...nodes.map(n => n.x + n.w / 2));
-    const minY = Math.min(...nodes.map(n => n.y - n.h / 2)), maxY = Math.max(...nodes.map(n => n.y + n.h / 2));
+    let minX = Math.min(...nodes.map(n => n.x - n.w / 2)), maxX = Math.max(...nodes.map(n => n.x + n.w / 2));
+    let minY = Math.min(...nodes.map(n => n.y - n.h / 2)), maxY = Math.max(...nodes.map(n => n.y + n.h / 2));
+    const b = svg.getBBox();
+    if (b.width || b.height) {
+      minX = Math.min(minX, b.x); maxX = Math.max(maxX, b.x + b.width);
+      minY = Math.min(minY, b.y); maxY = Math.max(maxY, b.y + b.height);
+    }
     // Keep clear of the search bar on top and the zoom controls / legend at the bottom-right.
     const top = 72, right = 72, bottom = 64, pad = 24;
     cam.k = clamp(Math.min((W - pad - right) / (maxX - minX), (H - top - bottom) / (maxY - minY)), 0.1, 1.2);
@@ -267,29 +312,19 @@ const graph = (() => {
     applyCamera();
   }
 
-  function step() {
-    frame = 0;
-    tick();
-    draw();
-    if (!cameraTouched) fit();
-    if (sim.alpha >= ALPHA_MIN || sim.alphaTarget > 0) run();
-  }
-  function run() {
-    if (reduceMotion) {
-      while (sim.alpha >= ALPHA_MIN) tick();
-      draw();
-      if (!cameraTouched) fit();
-    } else if (!frame && !$("graph-view").hidden) {
-      frame = requestAnimationFrame(step);
-    }
-  }
-  function reheat(alpha) { sim.alpha = Math.max(sim.alpha, alpha); run(); }
-
+  // Hovering a screen shows where it leads in the accent colour and where it is reached from in the second edge colour.
+  let highlighted = null;
   function highlight(id) {
     viewport.classList.toggle("focus", !!id);
-    const near = id ? neighbours(id) : new Set();
+    const near = id ? new Set([id, ...outgoing(id), ...incoming(id)]) : new Set();
     nodes.forEach(n => n.el.classList.toggle("hot", near.has(n.id)));
-    links.forEach(l => l.path.classList.toggle("hot", !!id && (l.source === id || l.target === id)));
+    for (const l of links) {
+      const out = !!id && (l.source === id || l.both && l.target === id), into = !!id && !out && l.target === id;
+      l.path.classList.toggle("out", out);
+      l.path.classList.toggle("in", into);
+      if (l.g.classList.toggle("hot", out || into) && id !== highlighted) svg.append(l.g);
+    }
+    highlighted = id;
   }
 
   const open = id => location.hash = screenUrl(id);
@@ -339,22 +374,18 @@ const graph = (() => {
       applyCamera();
     } else {
       const n = gesture.node, [wx, wy] = toWorld(p);
-      n.fx = wx - gesture.grab[0];
-      n.fy = wy - gesture.grab[1];
+      n.x = wx - gesture.grab[0];
+      n.y = wy - gesture.grab[1];
+      n.moved = true;
       highlight(n.id);
-      if (reduceMotion) { n.x = n.fx; n.y = n.fy; draw(); } else { sim.alphaTarget = 0.3; reheat(0.3); }
+      draw();
     }
   });
   const end = e => {
     if (!pointers.delete(e.pointerId) || !gesture) return;
     if (gesture.type === "node") {
-      const n = gesture.node;
-      if (!gesture.moved && e.type === "pointerup") open(n.id);
-      else {
-        sim.alphaTarget = 0;
-        if (n.id !== rootId) n.fx = n.fy = null;
-        highlight(null);
-      }
+      if (!gesture.moved && e.type === "pointerup") open(gesture.node.id);
+      else highlight(null);
     }
     viewport.classList.remove("panning");
     gesture = null;
@@ -381,7 +412,7 @@ const graph = (() => {
   $("zoom-in").onclick = () => zoomBy(1.25);
   $("zoom-out").onclick = () => zoomBy(0.8);
   $("zoom-fit").onclick = () => { cameraTouched = false; fit(); };
-  $("relayout").onclick = () => { cameraTouched = false; reheat(1); };
+  $("relayout").onclick = relayout;
 
   const search = $("search");
   search.addEventListener("input", () => {
@@ -398,6 +429,9 @@ const graph = (() => {
   if (rootId) legend.push(el("span", {}, el("i", { class: "l-entry" }), "Entry point"));
   if (rootId && nodes.some(n => isUnreachable(n.id))) legend.push(el("span", {}, el("i", { class: "l-unreachable" }), "Unreachable"));
   if (screens.some(failures)) legend.push(el("span", {}, el("i", { class: "l-fail" }), "Failed renders"));
+  if (links.some(l => l.back)) legend.push(el("span", {}, el("i", { class: "l-back" }), "Back to earlier screen"));
+  if (links.length) legend.push(el("span", { class: "hide-sm" }, el("i", { class: "l-out" }), "Leads to"),
+    el("span", { class: "hide-sm" }, el("i", { class: "l-in" }), "Reached from"));
   legend.push(el("span", { class: "hide-sm" }, "Drag to move · scroll to zoom"));
   $("legend").append(...legend);
   $("graph-notices").append(...notices());
@@ -408,7 +442,6 @@ const graph = (() => {
     show() {
       highlight(null);
       if (!cameraTouched) fit();
-      run();
     },
   };
 })();

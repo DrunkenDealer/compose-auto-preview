@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
   --bg: #f6f7f9; --surface: #ffffff; --surface-2: #eef0f3; --border: #dfe2e7; --text: #16181c; --muted: #5d6470;
-  --accent: #4453d6; --accent-soft: #eaecfd; --on-accent: #ffffff; --edge: #aab1bd; --grid: #d5d9df; --stage: #c9ced5;
+  --accent: #4453d6; --accent-soft: #eaecfd; --on-accent: #ffffff; --edge: #848c99; --edge-in: #b45309; --grid: #d5d9df; --stage: #c9ced5;
   --error: #b3261e; --error-soft: #fcebea; --warn: #7a4f00; --warn-soft: #fff4d6; --start: #1a7f4b; --on-start: #ffffff;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
   --shadow-lg: 0 8px 24px rgba(16,24,40,.14);
@@ -10,7 +10,7 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #0e1014; --surface: #161a20; --surface-2: #1d2129; --border: #2a303a; --text: #e8eaee; --muted: #9ba3af;
-    --accent: #8d97ff; --accent-soft: #242a52; --on-accent: #0e1014; --edge: #4c5461; --grid: #22272f; --stage: #3b414b;
+    --accent: #8d97ff; --accent-soft: #242a52; --on-accent: #0e1014; --edge: #667080; --edge-in: #f0a35e; --grid: #22272f; --stage: #3b414b;
     --error: #ffb4ab; --error-soft: #3a1d1b; --warn: #f5c86a; --warn-soft: #33290f; --start: #5fd49a; --on-start: #0e1014;
     --shadow: 0 1px 2px rgba(0,0,0,.5); --shadow-lg: 0 8px 24px rgba(0,0,0,.55);
   }
@@ -18,7 +18,7 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0e1014; --surface: #161a20; --surface-2: #1d2129; --border: #2a303a; --text: #e8eaee; --muted: #9ba3af;
-  --accent: #8d97ff; --accent-soft: #242a52; --on-accent: #0e1014; --edge: #4c5461; --grid: #22272f; --stage: #3b414b;
+  --accent: #8d97ff; --accent-soft: #242a52; --on-accent: #0e1014; --edge: #667080; --edge-in: #f0a35e; --grid: #22272f; --stage: #3b414b;
   --error: #ffb4ab; --error-soft: #3a1d1b; --warn: #f5c86a; --warn-soft: #33290f; --start: #5fd49a; --on-start: #0e1014;
   --shadow: 0 1px 2px rgba(0,0,0,.5); --shadow-lg: 0 8px 24px rgba(0,0,0,.55);
 }
@@ -70,9 +70,15 @@ code { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 #viewport.panning { cursor: grabbing; }
 #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 #edges { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
-.edge { fill: none; stroke: var(--edge); stroke-width: 1.6; marker-end: url(#arrow); transition: opacity .2s; }
-.edge.hot { stroke: var(--accent); stroke-width: 2.4; marker-end: url(#arrow-hot); }
-.focus .edge:not(.hot) { opacity: .15; }
+.edge, .edge-casing { fill: none; stroke-linecap: round; transition: opacity .2s; }
+.edge-casing { stroke: var(--bg); stroke-width: 6; }
+.edge { --arrow: url(#arrow); stroke: var(--edge); stroke-width: 1.8; }
+.edge.start { marker-start: var(--arrow); }
+.edge.end { marker-end: var(--arrow); }
+.edge.back { stroke-dasharray: 6 5; }
+.edge.out { --arrow: url(#arrow-out); stroke: var(--accent); stroke-width: 2.4; }
+.edge.in { --arrow: url(#arrow-in); stroke: var(--edge-in); stroke-width: 2.4; }
+.focus #edges g:not(.hot) > * { opacity: .12; }
 
 .node { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 0; border: 0; background: none; cursor: pointer; transition: opacity .2s; -webkit-user-drag: none; }
@@ -116,6 +122,10 @@ kbd { padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; backg
 .legend .l-entry { border-radius: 999px; background: var(--start); }
 .legend .l-unreachable { outline: 2px dashed var(--muted); outline-offset: -2px; }
 .legend .l-fail { border-radius: 50%; background: var(--error); }
+.legend .l-back, .legend .l-out, .legend .l-in { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--edge); }
+.legend .l-back { border-top-style: dashed; }
+.legend .l-out { border-top-color: var(--accent); }
+.legend .l-in { border-top-color: var(--edge-in); }
 .zoom { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
   box-shadow: var(--shadow); overflow: hidden; }
 .zoom button { width: 40px; height: 40px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }

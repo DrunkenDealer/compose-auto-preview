@@ -18,7 +18,6 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
-            implementation(projects.annotations)
             implementation(libs.androidx.activity.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -48,5 +47,12 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
-    add("kspAndroid", projects.processor)
+}
+
+// The plugin adds the published annotations and processor; build them from source here instead.
+configurations.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("app.mashlab:compose-auto-preview-annotations")).using(project(":annotations"))
+        substitute(module("app.mashlab:compose-auto-preview-processor")).using(project(":processor"))
+    }
 }

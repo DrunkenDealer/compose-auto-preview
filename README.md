@@ -21,6 +21,19 @@ internal fun SettingsScreenPreview(
 ) = SettingsScreen(state)
 ```
 
+## Setup
+
+Apply the plugin next to KSP — that's the whole setup, for Android and Kotlin Multiplatform modules alike:
+
+```kotlin
+plugins {
+    alias(libs.plugins.ksp)
+    id("app.mashlab.compose-auto-preview") version "3.2.0"
+}
+```
+
+The plugin adds the annotations (to `androidMain` in KMP) and the KSP processor for you.
+
 After the first build, Studio resolves the generated `@SettingsScreenAutoPreviews` annotation and `SettingsScreenPreviewSamplesProvider` class. Studio renders **4 cells** (2 devices × 2 themes, first sample); `./gradlew autoPreview` renders all **20** (× 5 samples).
 
 ## Why two outputs
@@ -32,15 +45,6 @@ So the IDE only gets `devices × themes` for the first sample, and the full matr
 `@AutoPreview` takes a single `locale` (default `"en"`) — change the value to check another locale.
 
 ## Full matrix report
-
-Apply the Gradle plugin next to KSP:
-
-```kotlin
-plugins {
-    alias(libs.plugins.ksp)
-    id("app.mashlab.compose-auto-preview") version "3.1.1"
-}
-```
 
 ```
 ./gradlew :app:autoPreview
@@ -76,17 +80,7 @@ KSP generates two declarations per `@AutoPreview` function:
 
 You write **one** function, decorated with `@AutoPreview` (drives codegen) and the generated `@<UserFn>AutoPreviews` (drives Studio rendering). The function parameter carries `@PreviewParameter(<UserFn>SamplesProvider::class)` so Studio injects each sample.
 
-## Android native implementation
-
-```kotlin
-// build.gradle.kts
-plugins { alias(libs.plugins.ksp) }
-
-dependencies {
-    implementation("app.mashlab:compose-auto-preview-annotations:3.1.1")
-    ksp("app.mashlab:compose-auto-preview-processor:3.1.1")
-}
-```
+## Usage
 
 **1. Define your state samples.** Any `object` with vals of the target state type works:
 
@@ -111,7 +105,7 @@ internal fun SettingsScreenPreview(
 
 First build resolves `@SettingsScreenAutoPreviews` and `SettingsScreenPreviewSamplesProvider` — both are red until KSP runs once.
 
-**3. (Optional) Apply the Gradle plugin** for the full matrix — see [Full matrix report](#full-matrix-report).
+In a KMP module, state and samples can live in `commonMain`; the `@AutoPreview` function goes in `androidMain` (where KSP runs), since Compose Preview is Android-only.
 
 ## Dialogs and bottom sheets
 
@@ -124,29 +118,6 @@ First build resolves `@SettingsScreenAutoPreviews` and `SettingsScreenPreviewSam
 internal fun ConfirmDialogPreview(
     @PreviewParameter(ConfirmDialogPreviewSamplesProvider::class) state: ConfirmDialogState,
 ) = Box(Modifier.fillMaxSize()) { ConfirmDialog(state) }
-```
-
-## Kotlin Multiplatform implementation
-
-State and samples go in `commonMain`. The `@AutoPreview` function lives in `androidMain` (where KSP runs) — Compose Preview is Android-only.
-
-```kotlin
-plugins { alias(libs.plugins.ksp) }
-
-kotlin {
-    sourceSets {
-        commonMain.dependencies {
-            implementation("app.mashlab:compose-auto-preview-annotations:3.1.1")
-        }
-        androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-        }
-    }
-}
-
-dependencies {
-    add("kspAndroid", "app.mashlab:compose-auto-preview-processor:3.1.1")
-}
 ```
 
 ## Shared config across screens

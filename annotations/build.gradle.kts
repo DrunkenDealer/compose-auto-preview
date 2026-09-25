@@ -47,7 +47,7 @@ mavenPublishing {
     coordinates(
         groupId = "app.mashlab",
         artifactId = "compose-auto-preview-annotations",
-        version = "3.1.1",
+        version = libs.versions.autoPreview.get(),
     )
     pom {
         name.set("Compose Auto Preview — Annotations")

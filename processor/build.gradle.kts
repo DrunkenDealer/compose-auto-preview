@@ -25,7 +25,7 @@ mavenPublishing {
     coordinates(
         groupId = "app.mashlab",
         artifactId = "compose-auto-preview-processor",
-        version = "3.1.1",
+        version = libs.versions.autoPreview.get(),
     )
     pom {
         name.set("Compose Auto Preview — KSP Processor")

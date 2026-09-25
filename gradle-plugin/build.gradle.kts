@@ -23,8 +23,9 @@ dependencies {
 val generateVersions by tasks.registering {
     val robolectric = libs.versions.robolectric.get()
     val junit = libs.versions.junit.get()
+    val autoPreview = libs.versions.autoPreview.get()
     val outputDir = layout.buildDirectory.dir("generated/versions")
-    inputs.property("versions", listOf(robolectric, junit))
+    inputs.property("versions", listOf(robolectric, junit, autoPreview))
     outputs.dir(outputDir)
     doLast {
         val file = outputDir.get().file("app/mashlab/autopreview/gradle/Versions.kt").asFile
@@ -36,6 +37,7 @@ val generateVersions by tasks.registering {
             |internal object Versions {
             |    const val ROBOLECTRIC = "$robolectric"
             |    const val JUNIT = "$junit"
+            |    const val AUTO_PREVIEW = "$autoPreview"
             |}
             |""".trimMargin()
         )
@@ -56,7 +58,7 @@ mavenPublishing {
     coordinates(
         groupId = "app.mashlab",
         artifactId = "compose-auto-preview-gradle-plugin",
-        version = "3.1.1",
+        version = libs.versions.autoPreview.get(),
     )
     pom {
         name.set("Compose Auto Preview — Gradle Plugin")

@@ -2,6 +2,7 @@ package app.mashlab.autopreview.gradle
 
 import com.android.build.api.dsl.CommonExtension
 import com.google.devtools.ksp.gradle.KspExtension
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
@@ -16,6 +17,11 @@ private const val GROUP = "autopreview"
 private const val RENDER_TEST = "AutoPreviewRenderTest"
 private const val UNIT_TEST_TASK = "testDebugUnitTest"
 private const val RENDER_TASK = "autoPreviewRender"
+private const val KSP_PLUGIN = "com.google.devtools.ksp"
+private const val KMP_PLUGIN = "org.jetbrains.kotlin.multiplatform"
+private const val KOTLIN_ANDROID_PLUGIN = "org.jetbrains.kotlin.android"
+private const val ANNOTATIONS = "app.mashlab:compose-auto-preview-annotations:${Versions.AUTO_PREVIEW}"
+private const val PROCESSOR = "app.mashlab:compose-auto-preview-processor:${Versions.AUTO_PREVIEW}"
 
 class AutoPreviewPlugin : Plugin<Project> {
 
@@ -31,9 +37,15 @@ class AutoPreviewPlugin : Plugin<Project> {
             requireNotNull(android.namespace) { "Compose Auto Preview needs `android.namespace` to be set." }
         }
 
-        project.pluginManager.withPlugin("com.google.devtools.ksp") {
+        project.pluginManager.withPlugin(KSP_PLUGIN) {
             project.extensions.getByType(KspExtension::class.java).arg(RegistryPackageArgument(registryPackage))
         }
+        project.afterEvaluate {
+            if (!project.pluginManager.hasPlugin(KSP_PLUGIN)) {
+                throw GradleException("Compose Auto Preview needs the KSP plugin (`$KSP_PLUGIN`) applied to ${project.path}.")
+            }
+        }
+        addLibraryDependencies(project)
 
         listOf(
             "org.robolectric:robolectric:${Versions.ROBOLECTRIC}",
@@ -51,12 +63,12 @@ class AutoPreviewPlugin : Plugin<Project> {
             it.outputDir.set(project.layout.buildDirectory.dir("generated/autopreview/test"))
         }
         val generatedSources = generateTest.flatMap { it.outputDir }
-        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        project.pluginManager.withPlugin(KMP_PLUGIN) {
             project.extensions.getByType(KotlinMultiplatformExtension::class.java).sourceSets
                 .matching { it.name == "androidUnitTest" }
                 .configureEach { it.kotlin.srcDir(generatedSources) }
         }
-        project.pluginManager.withPlugin("org.jetbrains.kotlin.android") {
+        project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN) {
             android.sourceSets.getByName("test").kotlin.srcDir(generatedSources)
         }
 
@@ -103,6 +115,26 @@ class AutoPreviewPlugin : Plugin<Project> {
             )
         }
     }
+}
+
+private fun addLibraryDependencies(project: Project) {
+    // Preview functions are Android-only, so KMP gets the annotations in androidMain, not commonMain.
+    project.pluginManager.withPlugin(KMP_PLUGIN) {
+        project.extensions.getByType(KotlinMultiplatformExtension::class.java).sourceSets
+            .matching { it.name == "androidMain" }
+            .configureEach { it.dependencies { implementation(ANNOTATIONS) } }
+        addProcessor(project, "kspAndroid")
+    }
+    project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN) {
+        project.dependencies.add("implementation", ANNOTATIONS)
+        addProcessor(project, "ksp")
+    }
+}
+
+// KSP creates its configurations when it (or the target) is set up, possibly after this plugin.
+private fun addProcessor(project: Project, configuration: String) {
+    project.configurations.matching { it.name == configuration }
+        .configureEach { project.dependencies.add(it.name, PROCESSOR) }
 }
 
 // A provider rather than a system property so the absolute path stays out of the task's cache key.

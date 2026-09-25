@@ -1,0 +1,115 @@
+complexity:
+  excludes: ['**/build/**']
+  ComplexCondition:
+    active: true
+    threshold: 4
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 20
+  LargeClass:
+    active: true
+    threshold: 600
+  LongMethod:
+    active: true
+    threshold: 125
+    excludes: ['**/ui/components/**', '**/build/**']
+  LongParameterList:
+    active: true
+    functionThreshold: 6
+    constructorThreshold: 8
+    excludes: ['**/ui/components/**', '**/build/**']
+  NestedBlockDepth:
+    active: true
+    threshold: 4
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 15
+    thresholdInClasses: 40
+    thresholdInInterfaces: 30
+    thresholdInObjects: 30
+    thresholdInEnums: 15
+
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: true
+  SuspendFunWithCoroutineScopeReceiver:
+    active: true
+
+empty-blocks:
+  active: true
+  excludes: ['**/build/**']
+
+exceptions:
+  active: true
+  SwallowedException:
+    active: true
+  TooGenericExceptionCaught:
+    active: true
+    excludes: ['**/test/**', '**/commonTest/**', '**/androidTest/**']
+
+naming:
+  active: true
+  excludes: ['**/build/**']
+  FunctionNaming:
+    active: true
+    excludes: ['**/test/**', '**/commonTest/**', '**/androidTest/**', '**/build/**']
+    functionPattern: '[a-zA-Z][a-zA-Z0-9]*'
+  PackageNaming:
+    active: true
+    excludes: ['**/build/**']
+  TopLevelPropertyNaming:
+    active: true
+    constantPattern: '[A-Z][A-Za-z0-9]*|[A-Z][_A-Z0-9]*'
+  VariableNaming:
+    active: true
+    variablePattern: '[a-z][A-Za-z0-9]*'
+
+performance:
+  active: true
+  SpreadOperator:
+    active: false
+
+potential-bugs:
+  active: true
+
+style:
+  active: true
+  excludes: ['**/build/**']
+  ForbiddenComment:
+    active: false
+  MagicNumber:
+    active: true
+    excludes: ['**/test/**', '**/commonTest/**', '**/androidTest/**', '**/ui/components/**', '**/build/**']
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+    ignoreHashCodeFunction: true
+    ignorePropertyDeclaration: true
+    ignoreLocalVariableDeclaration: true
+    ignoreAnnotation: true
+    ignoreEnums: true
+    ignoreRanges: true
+    ignoreExtensionFunctions: true
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+    excludes: ['**/test/**', '**/commonTest/**', '**/androidTest/**', '**/build/**']
+  ReturnCount:
+    active: true
+    max: 3
+    excludeGuardClauses: true
+  UnusedImports:
+    active: true
+  UnusedPrivateClass:
+    active: true
+  UnusedPrivateMember:
+    active: true
+    allowedNames: '(_|ignored|expected|serialVersionUID|.*Preview.*)'
+  UnusedPrivateProperty:
+    active: true
+    allowedNames: '(_|ignored|expected|serialVersionUID|.*Preview.*)'
+  WildcardImport:
+    active: true

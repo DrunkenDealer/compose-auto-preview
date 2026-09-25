@@ -30,9 +30,7 @@ internal object PreviewMatrix {
             builder.addMember("showBackground = true")
             builder.addMember(
                 "backgroundColor = 0x%LL",
-                args.backgroundColor
-                    .toString(16)
-                    .uppercase(),
+                "%X".format(args.backgroundColor),
             )
         }
         if (args.showSystemUi) {

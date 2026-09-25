@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package app.mashlab.autopreview.sample
 
 import androidx.compose.foundation.layout.Column

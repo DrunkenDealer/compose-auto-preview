@@ -3,6 +3,13 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.mavenPublish)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    parallel = true
+    config.setFrom(files("../config/detekt/detekt.yml"))
 }
 
 ktlint {

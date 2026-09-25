@@ -125,9 +125,7 @@ internal object RenderRegistry {
                     .toTypedArray(),
             ).add(
                 "backgroundColor = 0x%LL,\n",
-                args.backgroundColor
-                    .toString(16)
-                    .uppercase(),
+                "%X".format(args.backgroundColor),
             ).add(
                 "navigatesTo = listOf(${args.navigatesTo.joinToString {
                     "%S"

@@ -127,7 +127,8 @@ class AutoPreviewPlugin : Plugin<Project> {
         project.tasks.register("autoPreview", ShowReportTask::class.java) {
             it.group = GROUP
             it.description =
-                "Renders the full preview matrix, builds an HTML app graph and opens it (-PautoPreview.open=false to skip)."
+                "Renders the full preview matrix, builds an HTML app graph and opens it " +
+                "(-PautoPreview.open=false to skip)."
             it.dependsOn(report)
             it.reportFile.set(report.flatMap { task -> task.reportFile })
             // IDE terminals open file:// links in the editor, so the task opens the browser itself; never on CI.

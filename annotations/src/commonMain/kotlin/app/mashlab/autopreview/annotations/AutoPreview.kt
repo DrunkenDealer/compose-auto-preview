@@ -9,6 +9,7 @@ import kotlin.reflect.KClass
  */
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.ANNOTATION_CLASS)
 @Retention(AnnotationRetention.BINARY)
+@Suppress("LongParameterList")
 annotation class AutoPreview(
     val samplesFrom: KClass<*>,
     val locale: String = "en",

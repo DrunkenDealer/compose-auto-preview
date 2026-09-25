@@ -126,6 +126,7 @@ class AutoPreviewProcessor(
         RenderRegistry.write(codeGenerator, registryPackage, registryEntries)
     }
 
+    @Suppress("ReturnCount")
     private fun processFunction(
         fn: KSFunctionDeclaration,
         args: AutoPreviewArgs,
@@ -148,7 +149,8 @@ class AutoPreviewProcessor(
         val valueParams = fn.parameters
         if (valueParams.size != 1) {
             logger.error(
-                "@AutoPreview function must declare exactly one value parameter (the state), found ${valueParams.size}.",
+                "@AutoPreview function must declare exactly one value parameter (the state), " +
+                    "found ${valueParams.size}.",
                 fn,
             )
             return

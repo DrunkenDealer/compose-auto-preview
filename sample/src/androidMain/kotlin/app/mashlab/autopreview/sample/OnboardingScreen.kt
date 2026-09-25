@@ -5,7 +5,7 @@ package app.mashlab.autopreview.sample
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -41,22 +41,24 @@ fun OnboardingScreen(
     state: OnboardingScreenState,
     modifier: Modifier = Modifier,
 ) {
-    MaterialTheme {
-        Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-            val label = when (state) {
-                OnboardingScreenState.Welcome -> {
-                    "Welcome"
-                }
+    SampleTheme {
+        Surface(modifier = modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                val label = when (state) {
+                    OnboardingScreenState.Welcome -> {
+                        "Welcome"
+                    }
 
-                is OnboardingScreenState.CategorySelection -> {
-                    if (state.selected.isEmpty()) "Pick categories" else "Picked: ${state.selected.joinToString()}"
-                }
+                    is OnboardingScreenState.CategorySelection -> {
+                        if (state.selected.isEmpty()) "Pick categories" else "Picked: ${state.selected.joinToString()}"
+                    }
 
-                is OnboardingScreenState.Complete -> {
-                    "Done — ${state.summary}"
+                    is OnboardingScreenState.Complete -> {
+                        "Done — ${state.summary}"
+                    }
                 }
+                Text(label)
             }
-            Text(label)
         }
     }
 }

@@ -15,7 +15,6 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -166,7 +165,7 @@ class AutoPreviewProcessor(
             providerClassName = providerClassName,
             stateTypeName = stateTypeName,
             samplesSource = sourceClassName,
-            samples = samples,
+            firstSample = samples.first(),
         )
 
         val multiPreviewSpec = TypeSpec.annotationBuilder(multiPreviewClassName)
@@ -179,27 +178,20 @@ class AutoPreviewProcessor(
             .addType(multiPreviewSpec)
             .build()
             .writeTo(codeGenerator, aggregating = false, originatingKSFiles = listOf(file))
+
     }
 
     private fun buildSamplesProvider(
         providerClassName: ClassName,
         stateTypeName: TypeName,
         samplesSource: ClassName,
-        samples: List<String>,
+        firstSample: String,
     ): TypeSpec {
-        val valuesType = SEQUENCE.parameterizedBy(stateTypeName)
-        val initializer = CodeBlock.builder()
-            .add("sequenceOf(\n")
-            .indent()
-            .apply {
-                samples.forEach { sample -> add("%T.%N,\n", samplesSource, sample) }
-            }
-            .unindent()
-            .add(")")
-            .build()
-        val valuesProperty = PropertySpec.builder("values", valuesType)
+        // The IDE renders only the first sample to keep the preview pane light; the full matrix is
+        // rendered off-IDE by the Gradle plugin.
+        val valuesProperty = PropertySpec.builder("values", SEQUENCE.parameterizedBy(stateTypeName))
             .addModifiers(KModifier.OVERRIDE)
-            .initializer(initializer)
+            .initializer("sequenceOf(%T.%N)", samplesSource, firstSample)
             .build()
         return TypeSpec.classBuilder(providerClassName)
             .addModifiers(KModifier.INTERNAL)

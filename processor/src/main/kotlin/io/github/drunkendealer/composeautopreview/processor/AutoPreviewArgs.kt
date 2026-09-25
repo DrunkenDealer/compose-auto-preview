@@ -22,7 +22,7 @@ internal data class AutoPreviewArgs(
             devices = args["devices"].toEnumNames().mapNotNull(DeviceKind::from)
                 .ifEmpty { listOf(DeviceKind.Phone) },
             themes = args["themes"].toEnumNames().mapNotNull(ThemeKind::from)
-                .ifEmpty { listOf(ThemeKind.Light) },
+                .ifEmpty { listOf(ThemeKind.Light, ThemeKind.Dark) },
             backgroundColor = (args["backgroundColor"] as? Long) ?: 0xFFFFFFFFL,
             showSystemUi = (args["showSystemUi"] as? Boolean) ?: false,
         )

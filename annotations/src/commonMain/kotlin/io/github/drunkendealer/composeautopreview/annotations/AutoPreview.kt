@@ -8,7 +8,7 @@ annotation class AutoPreview(
     val samplesFrom: KClass<*>,
     val locale: String = "en",
     val devices: Array<Device> = [Device.Phone],
-    val themes: Array<Theme> = [Theme.Light],
+    val themes: Array<Theme> = [Theme.Light, Theme.Dark],
     val backgroundColor: Long = 0xFFFFFFFF,
     val showSystemUi: Boolean = false,
 )

@@ -17,6 +17,7 @@ import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
@@ -55,7 +56,10 @@ private val NON_WRAPPER_SHORT_NAMES = setOf(
 class AutoPreviewProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
+    private val registryPackage: String?,
 ) : SymbolProcessor {
+
+    private val registryEntries = mutableListOf<RegistryEntry>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val direct: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = resolver
@@ -93,6 +97,24 @@ class AutoPreviewProcessor(
 
         (direct + viaMeta).forEach { (fn, args) -> processFunction(fn, args) }
         return emptyList()
+    }
+
+    override fun finish() {
+        val entryPoints = registryEntries.filter { it.args.entryPoint }
+        if (entryPoints.size > 1) {
+            logger.error("@AutoPreview: only one screen can be the entry point, found ${entryPoints.joinToString { it.id }}")
+        }
+        // Only with the Gradle plugin is every screen reprocessed on each run (the registry is aggregating),
+        // so cross-screen checks are reliable. The registry is written even when empty: the render test uses it.
+        if (registryPackage == null) return
+        registryEntries.groupBy { it.id }.filterValues { it.size > 1 }.forEach { (id, entries) ->
+            logger.error("@AutoPreview: screen id \"$id\" is used by ${entries.joinToString { it.previewFunction.canonicalName }}")
+        }
+        val ids = registryEntries.mapTo(HashSet()) { it.id }
+        registryEntries.forEach { entry ->
+            (entry.args.navigatesTo - ids).forEach { logger.warn("@AutoPreview: ${entry.id} navigatesTo unknown screen \"$it\"") }
+        }
+        RenderRegistry.write(codeGenerator, registryPackage, registryEntries)
     }
 
     private fun processFunction(fn: KSFunctionDeclaration, args: AutoPreviewArgs) {
@@ -179,6 +201,14 @@ class AutoPreviewProcessor(
             .build()
             .writeTo(codeGenerator, aggregating = false, originatingKSFiles = listOf(file))
 
+        registryEntries += RegistryEntry(
+            id = annotationBaseName,
+            previewFunction = MemberName(packageName, userFnName),
+            samplesSource = sourceClassName,
+            samples = samples,
+            args = args,
+            file = file,
+        )
     }
 
     private fun buildSamplesProvider(

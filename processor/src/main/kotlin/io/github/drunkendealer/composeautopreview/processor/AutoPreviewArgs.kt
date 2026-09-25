@@ -12,6 +12,8 @@ internal data class AutoPreviewArgs(
     val themes: List<ThemeKind>,
     val backgroundColor: Long,
     val showSystemUi: Boolean,
+    val navigatesTo: List<String>,
+    val entryPoint: Boolean,
 ) {
     companion object {
         fun from(annotation: KSAnnotation): AutoPreviewArgs = fromArgs(annotation.argsMap())
@@ -25,6 +27,8 @@ internal data class AutoPreviewArgs(
                 .ifEmpty { listOf(ThemeKind.Light, ThemeKind.Dark) },
             backgroundColor = (args["backgroundColor"] as? Long) ?: 0xFFFFFFFFL,
             showSystemUi = (args["showSystemUi"] as? Boolean) ?: false,
+            navigatesTo = (args["navigatesTo"] as? List<*>)?.filterIsInstance<String>().orEmpty(),
+            entryPoint = (args["entryPoint"] as? Boolean) ?: false,
         )
     }
 }

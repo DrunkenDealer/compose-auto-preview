@@ -18,6 +18,7 @@ dependencies {
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
     testImplementation(libs.kotlin.test)
+    testImplementation(libs.kctfork.ksp)
 }
 
 mavenPublishing {

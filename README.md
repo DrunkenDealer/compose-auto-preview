@@ -3,7 +3,10 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.drunkendealer/compose-auto-preview-annotations.svg)](https://central.sonatype.com/artifact/io.github.drunkendealer/compose-auto-preview-annotations)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Compose Auto Preview removes the boilerplate around Compose `@Preview` matrices. One annotation generates the `device × theme × samples` matrix plus the `PreviewParameterProvider` for your state samples — you stop hand-stacking `@Preview` annotations and hand-writing provider classes.
+Compose Auto Preview turns one annotation into two outputs:
+
+- **A light live preview in Android Studio** — every device × theme for the first state sample. Cheap enough to keep the preview pane responsive while you edit.
+- **The full matrix as PNGs** — every device × theme × state, rendered by Gradle outside the IDE, browsable as an HTML graph of your app's screens.
 
 ```kotlin
 @AutoPreview(
@@ -18,15 +21,51 @@ internal fun SettingsScreenPreview(
 ) = SettingsScreen(state)
 ```
 
-After the first build, Studio resolves the generated `@SettingsScreenAutoPreviews` annotation and `SettingsScreenPreviewSamplesProvider` class. The example above renders **20 cells** — 2 devices × 2 themes × 5 samples.
+After the first build, Studio resolves the generated `@SettingsScreenAutoPreviews` annotation and `SettingsScreenPreviewSamplesProvider` class. Studio renders **4 cells** (2 devices × 2 themes, first sample); `./gradlew autoPreview` renders all **20** (× 5 samples).
 
-## How the matrix stays cheap
+## Why two outputs
 
-Compose Preview's bitmap cache scales linearly with cell count. A 20-screen app rendering a full `device × locale × theme` Cartesian accumulates ~800 cells × ~3MB each ≈ **2.4 GB** of bitmaps before any cell ages out. Studio lags and eventually needs Invalidate Caches.
+Android Studio creates and keeps a render session per preview cell for every preview in the open file, so IDE memory grows with cell count — a full `device × theme × state` matrix across a few screens quickly eats gigabytes. Off-screen cells are already rendered at low resolution, so shrinking bitmaps doesn't fix it; rendering fewer cells does.
 
-The library leans on one observation: of the obvious axes, **locale is the one you rarely need to multiply cells**. You verify devices side-by-side (phone vs tablet vs foldable) and themes stacked (light vs dark), but locale is usually checked one at a time. So `@AutoPreview` takes a single `locale: String` (default `"en"`) and renders the `device × theme × samples` Cartesian against that one locale.
+So the IDE only gets `devices × themes` for the first sample, and the full matrix goes to Gradle, which renders it with Robolectric in a separate JVM and writes PNGs to disk.
 
-Switch the rendered locale by editing the `locale` value and rebuilding. To verify a different locale, change the field. No global flag, no Gradle property.
+`@AutoPreview` takes a single `locale` (default `"en"`) — change the value to check another locale.
+
+## Full matrix report
+
+Apply the Gradle plugin next to KSP:
+
+```kotlin
+plugins {
+    alias(libs.plugins.ksp)
+    id("io.github.drunkendealer.compose-auto-preview") version "3.1.1"
+}
+```
+
+```
+./gradlew :app:autoPreview
+…
+Auto preview report: file:///…/app/build/autopreview/index.html
+```
+
+The report opens on an interactive graph of your app, laid out from its entry point. Each screen is a thumbnail in its device frame, the entry point is tagged, and each hop away from the start sits on the next ring out.
+
+- **Graph:** drag nodes, pan, and zoom with the scroll wheel or a pinch. Hover a screen to highlight its links; press `/` to search.
+- **List view:** the same information as a table.
+- **Screen page:** every state in light and dark, side by side, with one tab per device. Switch between *Fit* and *Actual size* (1 dp = 1 CSS px). Click a shot for a full-screen viewer: `←`/`→` step, `T` switches theme, `[`/`]` go to the previous/next screen.
+
+The render task is incremental: nothing re-renders if the code didn't change. The task opens the report in your default browser; pass `-PautoPreview.open=false` to skip that (it never opens on CI).
+
+Mark the start screen with `entryPoint`, and declare edges with `navigatesTo`. A screen id is the preview function name without the `Preview` suffix; ids must be unique within a module, and unknown `navigatesTo` targets are reported as build warnings:
+
+```kotlin
+@AutoPreview(samplesFrom = OnboardingSamples::class, entryPoint = true, navigatesTo = ["SettingsScreen"])
+@AutoPreview(samplesFrom = SettingsSamples::class, navigatesTo = ["ConfirmDialog"])
+```
+
+Screens the entry point can't reach are drawn dashed on the outer ring. Unknown ids are listed as a warning in the report.
+
+The plugin adds Robolectric to `testImplementation` and a generated render test that is skipped in regular unit test runs. It renders with your target SDK when unit tests run on **JDK 21** (Android Studio's bundled JBR works); on older JDKs it falls back to SDK 34, since Robolectric needs Java 21 for SDK 35+.
 
 ## How it works
 
@@ -71,6 +110,8 @@ internal fun SettingsScreenPreview(
 ```
 
 First build resolves `@SettingsScreenAutoPreviews` and `SettingsScreenPreviewSamplesProvider` — both are red until KSP runs once.
+
+**3. (Optional) Apply the Gradle plugin** for the full matrix — see [Full matrix report](#full-matrix-report).
 
 ## Dialogs and bottom sheets
 
@@ -143,18 +184,23 @@ Any parameter declared in the wrapper's constructor overrides the meta-annotatio
 | `samplesFrom`     | `KClass<*>`     | —                    |
 | `locale`          | `String`        | `"en"`               |
 | `devices`         | `Array<Device>` | `[Device.Phone]`     |
-| `themes`          | `Array<Theme>`  | `[Theme.Light]`      |
+| `themes`          | `Array<Theme>`  | `[Theme.Light, Theme.Dark]` |
 | `backgroundColor` | `Long`          | `0xFFFFFFFF` (white) |
 | `showSystemUi`    | `Boolean`       | `false`              |
+| `navigatesTo`     | `Array<String>` | `[]`                 |
+| `entryPoint`      | `Boolean`       | `false`              |
 
-`Device` values: `Phone`, `Tablet`, `Foldable`, `Desktop`. `Theme` values: `Light`, `Dark`.
+`Device` values: `Phone`, `Tablet`, `Foldable`, `Desktop`, `Tv`, `Wear` (round). `Theme` values: `Light`, `Dark`.
 
-Cells in the preview pane: `devices × themes × samples`. All device specs render at `dpi=160` (mdpi) regardless of physical-device density to keep bitmaps as small as possible.
+Cells in the preview pane: `devices × themes` (first sample). Cells in the report: `devices × themes × samples`.
 
 ## Caveats
 
 - **First-build red squigglies.** `@<Name>AutoPreviews` and `<Name>SamplesProvider` don't exist until KSP runs. Type them, build once, Studio resolves them.
 - **Switching the rendered locale** is a source edit: change the `locale` value and let KSP regenerate.
+- **Report vs Studio fidelity.** The report renders with Robolectric, Studio with layoutlib — close, but not always pixel-identical. Infinite animations (progress indicators) are frozen at their first frame; `showSystemUi` isn't drawn.
+- **Report is per module.** Each module with the plugin gets its own report; `navigatesTo` edges across modules aren't drawn yet.
+- **Keeping the IDE light.** For many screens in one file, *Settings › Editor › UI Tools › Preview Settings › View Mode: Focus* renders one preview at a time.
 
 ## Requirements
 

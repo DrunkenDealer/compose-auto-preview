@@ -15,31 +15,72 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 private const val GROUP = "autopreview"
 private const val RENDER_TEST = "AutoPreviewRenderTest"
-private const val UNIT_TEST_TASK = "testDebugUnitTest"
 private const val RENDER_TASK = "autoPreviewRender"
+private const val GENERATE_TEST_TASK = "generateAutoPreviewRenderTest"
 private const val KSP_PLUGIN = "com.google.devtools.ksp"
 private const val KMP_PLUGIN = "org.jetbrains.kotlin.multiplatform"
+private const val KMP_LIBRARY_PLUGIN = "com.android.kotlin.multiplatform.library"
 private const val KOTLIN_ANDROID_PLUGIN = "org.jetbrains.kotlin.android"
 private const val ANNOTATIONS = "app.mashlab:compose-auto-preview-annotations:${Versions.AUTO_PREVIEW}"
 private const val PROCESSOR = "app.mashlab:compose-auto-preview-processor:${Versions.AUTO_PREVIEW}"
 
+internal val TEST_DEPENDENCIES = listOf(
+    "org.robolectric:robolectric:${Versions.ROBOLECTRIC}",
+    "junit:junit:${Versions.JUNIT}",
+)
+
+/** What differs between the Android plugins; [configure] wires everything else the same way. */
+internal class AndroidModule(
+    val namespace: Provider<String>,
+    val unitTestTask: String,
+    val testImplementation: String,
+    val testDependencies: List<String>,
+    val kmpMainSourceSet: String,
+    val kmpTestSourceSet: String,
+    val kspConfiguration: String,
+)
+
 class AutoPreviewPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        project.pluginManager.withPlugin("com.android.application") { configure(project) }
-        project.pluginManager.withPlugin("com.android.library") { configure(project) }
+        project.pluginManager.withPlugin("com.android.application") { configureAndroidGradlePlugin(project) }
+        project.pluginManager.withPlugin("com.android.library") { configureAndroidGradlePlugin(project) }
+        // Kept in its own file so projects without the KMP library plugin never load its classes.
+        project.pluginManager.withPlugin(KMP_LIBRARY_PLUGIN) { configureKmpLibrary(project) { configure(project, it) } }
     }
 
-    private fun configure(project: Project) {
+    private fun configureAndroidGradlePlugin(project: Project) {
         val android = project.extensions.getByType(CommonExtension::class.java)
         android.testOptions.unitTests.isIncludeAndroidResources = true
-        val registryPackage = project.provider {
-            requireNotNull(android.namespace) { "Compose Auto Preview needs `android.namespace` to be set." }
+        val module = AndroidModule(
+            namespace = project.provider {
+                requireNotNull(android.namespace) { "Compose Auto Preview needs `android.namespace` to be set." }
+            },
+            unitTestTask = "testDebugUnitTest",
+            testImplementation = "testImplementation",
+            testDependencies = TEST_DEPENDENCIES,
+            kmpMainSourceSet = "androidMain",
+            kmpTestSourceSet = "androidUnitTest",
+            kspConfiguration = "kspAndroid",
+        )
+        configure(project, module)
+        project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN) {
+            project.dependencies.add("implementation", ANNOTATIONS)
+            addProcessor(project, "ksp")
+            android.sourceSets
+                .getByName("test")
+                .kotlin
+                .srcDir(project.generatedTestSources())
         }
+    }
 
+    private fun configure(
+        project: Project,
+        module: AndroidModule,
+    ) {
         project.pluginManager.withPlugin(KSP_PLUGIN) {
             project.extensions
                 .getByType(KspExtension::class.java)
-                .arg(RegistryPackageArgument(registryPackage))
+                .arg(RegistryPackageArgument(module.namespace))
         }
         project.afterEvaluate {
             if (!project.pluginManager.hasPlugin(KSP_PLUGIN)) {
@@ -48,21 +89,22 @@ class AutoPreviewPlugin : Plugin<Project> {
                 )
             }
         }
-        addLibraryDependencies(project)
 
-        listOf(
-            "org.robolectric:robolectric:${Versions.ROBOLECTRIC}",
-            "junit:junit:${Versions.JUNIT}",
-        ).forEach { project.dependencies.add("testImplementation", it) }
+        // Test configurations may be created after this plugin (the KMP library adds them with its host test).
+        project.configurations
+            .matching { it.name == module.testImplementation }
+            .configureEach { configuration ->
+                module.testDependencies.forEach { project.dependencies.add(configuration.name, it) }
+            }
 
-        val generateTest = project.tasks.register("generateAutoPreviewRenderTest", GenerateRenderTestTask::class.java) {
-            it.packageName.set(registryPackage)
+        project.tasks.register(GENERATE_TEST_TASK, GenerateRenderTestTask::class.java) {
+            it.packageName.set(module.namespace)
             // Looked up lazily: AGP registers the unit test task after this task may be realized.
             it.testJavaVersion.set(
                 project.provider {
                     (
                         project.tasks.getByName(
-                            UNIT_TEST_TASK,
+                            module.unitTestTask,
                         ) as Test
                     ).javaLauncher.get().metadata.languageVersion.asInt()
                 },
@@ -72,20 +114,24 @@ class AutoPreviewPlugin : Plugin<Project> {
                     .dir("generated/autopreview/test"),
             )
         }
-        val generatedSources = generateTest.flatMap { it.outputDir }
+        // Preview functions are Android-only, so KMP gets the annotations in the Android source set, not commonMain.
         project.pluginManager.withPlugin(KMP_PLUGIN) {
-            project.extensions
+            val sourceSets = project.extensions
                 .getByType(KotlinMultiplatformExtension::class.java)
                 .sourceSets
-                .matching { it.name == "androidUnitTest" }
-                .configureEach { it.kotlin.srcDir(generatedSources) }
+            sourceSets
+                .matching { it.name == module.kmpMainSourceSet }
+                .configureEach { it.dependencies { implementation(ANNOTATIONS) } }
+            sourceSets
+                .matching { it.name == module.kmpTestSourceSet }
+                .configureEach { it.kotlin.srcDir(project.generatedTestSources()) }
+            addProcessor(project, module.kspConfiguration)
         }
-        project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN) {
-            android.sourceSets
-                .getByName("test")
-                .kotlin
-                .srcDir(generatedSources)
-        }
+
+        // AGP's lint tasks read the test sources without the task dependency their provider carries.
+        project.tasks
+            .matching { it.name.startsWith("lint") || it.name.endsWith("LintModel") }
+            .configureEach { it.dependsOn(GENERATE_TEST_TASK) }
 
         // The render test also sits in regular unit test runs (skipped), and Robolectric SDK 35+ patches
         // FileDescriptor internals via jdk.internal.access while setting up any test.
@@ -98,7 +144,7 @@ class AutoPreviewPlugin : Plugin<Project> {
         val render = project.tasks.register(RENDER_TASK, Test::class.java) { test ->
             test.group = GROUP
             test.description = "Renders every @AutoPreview screen × device × theme × sample to PNG."
-            val unitTest = project.tasks.getByName(UNIT_TEST_TASK) as Test
+            val unitTest = project.tasks.getByName(module.unitTestTask) as Test
             test.testClassesDirs = unitTest.testClassesDirs
             test.classpath = unitTest.classpath
             test.javaLauncher.set(unitTest.javaLauncher)
@@ -146,21 +192,8 @@ class AutoPreviewPlugin : Plugin<Project> {
     }
 }
 
-private fun addLibraryDependencies(project: Project) {
-    // Preview functions are Android-only, so KMP gets the annotations in androidMain, not commonMain.
-    project.pluginManager.withPlugin(KMP_PLUGIN) {
-        project.extensions
-            .getByType(KotlinMultiplatformExtension::class.java)
-            .sourceSets
-            .matching { it.name == "androidMain" }
-            .configureEach { it.dependencies { implementation(ANNOTATIONS) } }
-        addProcessor(project, "kspAndroid")
-    }
-    project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN) {
-        project.dependencies.add("implementation", ANNOTATIONS)
-        addProcessor(project, "ksp")
-    }
-}
+private fun Project.generatedTestSources(): Provider<Directory> =
+    tasks.named(GENERATE_TEST_TASK, GenerateRenderTestTask::class.java).flatMap { it.outputDir }
 
 // KSP creates its configurations when it (or the target) is set up, possibly after this plugin.
 private fun addProcessor(

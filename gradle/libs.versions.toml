@@ -1,6 +1,6 @@
 [versions]
 agp = "8.13.0"
-autoPreview = "4.0.0"
+autoPreview = "4.1.0"
 android-compileSdk = "36"
 android-minSdk = "28"
 android-targetSdk = "36"
@@ -53,6 +53,7 @@ ksp-gradle-plugin = { module = "com.google.devtools.ksp:symbol-processing-gradle
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

@@ -32,3 +32,4 @@ dependencyResolutionManagement {
 include(":annotations")
 include(":processor")
 include(":sample")
+include(":sample-kmp-library")

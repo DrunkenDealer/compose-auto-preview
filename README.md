@@ -58,7 +58,7 @@ With 5 samples, Studio shows **4** cells and the report holds **20**.
 ```kotlin
 plugins {
     alias(libs.plugins.ksp)
-    id("app.mashlab.compose-auto-preview") version "4.0.0"
+    id("app.mashlab.compose-auto-preview") version "4.1.0"
 }
 ```
 
@@ -84,7 +84,34 @@ Auto preview report: file:///…/app/build/autopreview/index.html
 
 The report opens in your browser (never on CI; pass `-PautoPreview.open=false` to skip it). The task is incremental, so nothing re-renders if the code didn't change.
 
-In a KMP module, states and samples can live in `commonMain`. The `@AutoPreview` function goes in `androidMain`, where KSP runs.
+### Kotlin Multiplatform
+
+States and samples can live in `commonMain`. The `@AutoPreview` function goes in `androidMain`, where KSP runs.
+
+With AGP's KMP library plugin (`com.android.kotlin.multiplatform.library`, the default for KMP libraries on AGP 9), configure the Android target in `androidLibrary {}`:
+
+```kotlin
+plugins {
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ksp)
+    id("app.mashlab.compose-auto-preview") version "4.1.0"
+}
+
+kotlin {
+    androidLibrary {
+        namespace = "com.example.feature.settings"
+        compileSdk = 36
+        minSdk = 28
+    }
+    iosArm64()
+    iosSimulatorArm64()
+}
+```
+
+The plugin turns on host tests with Android resources (`withHostTest { isIncludeAndroidResources = true }`) unless you already call `withHostTest {}`, and renders them in `androidHostTest`. Compose Multiplatform resources (`Res.string`, `Res.drawable`) resolve in the report. See [`sample-kmp-library`](sample-kmp-library).
 
 ## How it works
 
@@ -204,9 +231,14 @@ internal fun ConfirmDialogPreview(
 
 Kotlin 2.0+ · KSP 2.0+ · Jetpack Compose or Compose Multiplatform 1.7+ · `minSdk` 28 · JVM 11
 
+| Module type | Minimum AGP |
+|---|---|
+| `com.android.application`, `com.android.library` (incl. KMP `androidTarget()`) | 8.9.1 (oldest verified; unchanged since 4.0) |
+| `com.android.kotlin.multiplatform.library` (`androidLibrary {}`) | 8.12.1 (earlier versions leave `android.jar` off the host-test runtime classpath, so Robolectric can't start) |
+
 ## Contributing
 
-Issues and pull requests are welcome on [GitHub](https://github.com/DrunkenDealer/compose-auto-preview/issues). The [`sample`](sample) module is a working habit-tracker app: run `./gradlew :sample:autoPreview` to try it.
+Issues and pull requests are welcome on [GitHub](https://github.com/DrunkenDealer/compose-auto-preview/issues). The [`sample`](sample) module is a working habit-tracker app: run `./gradlew :sample:autoPreview` to try it. [`sample-kmp-library`](sample-kmp-library) covers the KMP library plugin: `./gradlew :sample-kmp-library:autoPreview`.
 
 ## License
 

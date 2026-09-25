@@ -36,8 +36,10 @@ abstract class AutoPreviewReportTask : DefaultTask() {
         val images = imagesDir.get().asFile
         val files = listOf("report.css", "report.js", "frames.js").associateWith(::resource) +
             // A script rather than JSON: browsers block fetch() from file:// pages.
-            ("data.js" to "const DATA = ${images.resolve("manifest.json").readText()};\n" +
-                "const IMAGES = \"${images.relativeTo(report.parentFile).invariantSeparatorsPath}\";\n")
+            (
+                "data.js" to "const DATA = ${images.resolve("manifest.json").readText()};\n" +
+                    "const IMAGES = \"${images.relativeTo(report.parentFile).invariantSeparatorsPath}\";\n"
+            )
         files.forEach { (name, text) -> assets.resolve(name).writeText(text) }
         // A content hash in each asset URL, so browsers never pair a new page with cached old scripts.
         report.writeText(

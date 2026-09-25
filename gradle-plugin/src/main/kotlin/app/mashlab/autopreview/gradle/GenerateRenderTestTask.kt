@@ -54,6 +54,7 @@ private const val FALLBACK_SDK = 34
 private val TEMPLATE = """
 package __PACKAGE__
 
+import android.content.ContentProvider
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -98,6 +99,7 @@ class AutoPreviewRenderTest {
         val outputDir = File(outputPath!!)
         outputDir.deleteRecursively()
         outputDir.mkdirs()
+        startComposeResources()
         val screens = AutoPreviewRegistry.screens.map { screen ->
             val cells = screen.devices.flatMap { device ->
                 screen.themes.flatMap { theme ->
@@ -141,6 +143,8 @@ class AutoPreviewRenderTest {
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         try {
             val activity = controller.get()
+            // Library test manifests have no app theme, so the framework default would draw a title bar.
+            activity.actionBar?.hide()
             activity.window.decorView.setBackgroundColor(screen.backgroundColor.toInt())
             activity.setContent(parent = recomposer) { screen.content(index) }
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
@@ -152,6 +156,14 @@ class AutoPreviewRenderTest {
             recomposer.cancel()
             scope.cancel()
         }
+    }
+
+    // Compose Multiplatform resources get their Context from a ContentProvider, which library host tests don't start.
+    @Suppress("UNCHECKED_CAST")
+    private fun startComposeResources() {
+        val provider = runCatching { Class.forName("org.jetbrains.compose.resources.AndroidContextProvider") }
+            .getOrNull() ?: return
+        Robolectric.setupContentProvider(provider as Class<ContentProvider>)
     }
 
     // Draws every window (activity + dialogs/popups) in z-order, so dialogs render like on device.

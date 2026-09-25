@@ -1,0 +1,5 @@
+<resources>
+    <string name="about_title">Bloom Kit</string>
+    <string name="about_tagline">Shared UI for Android and iOS, rendered from Compose resources.</string>
+    <string name="about_version">Version %1$s</string>
+</resources>

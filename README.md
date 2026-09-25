@@ -1,9 +1,12 @@
 # Compose Auto Preview
 
 [![Maven Central](https://img.shields.io/maven-central/v/app.mashlab/compose-auto-preview-annotations.svg)](https://central.sonatype.com/artifact/app.mashlab/compose-auto-preview-annotations)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose](https://img.shields.io/badge/Jetpack%20Compose%20%7C%20Compose%20Multiplatform-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Demo](https://img.shields.io/badge/demo-live%20report-brightgreen.svg)](https://drunkendealer.github.io/compose-auto-preview/)
 
-One annotation per screen gives you every device × theme × state of your Compose UI, plus a browsable map of the app.
+Stop hand-writing `@Preview` functions. One annotation generates every **device × theme × state** preview for Jetpack Compose and Compose Multiplatform, and renders the full matrix into a browsable map of your app.
 
 <table>
   <tr>
@@ -100,6 +103,19 @@ flowchart LR
 2. **In the IDE.** Studio sees an ordinary multi-preview and renders it with layoutlib. It shows the first sample only, which keeps the cell count low.
 3. **In Gradle.** The plugin generates a render test that runs every function against every sample under Robolectric and writes a PNG per cell. Regular unit test runs skip it.
 4. **The report.** A static HTML page draws the screens as a graph from your `entryPoint` along `navigatesTo` edges. It also has a list view and a page per screen with a full-screen viewer (`←`/`→` step, `T` toggles theme, `[`/`]` switch screen, `/` searches).
+
+## How it compares
+
+[Paparazzi](https://github.com/cashapp/paparazzi), [Roborazzi](https://github.com/takahirom/roborazzi) and [Compose Preview Screenshot Testing](https://developer.android.com/studio/preview/compose-screenshot-testing) are screenshot *testing* tools: they record golden images and fail the build when pixels change. You still write each preview or test yourself.
+
+Compose Auto Preview solves the step before that: it *generates* the previews from one annotation and shows the whole app in one report. It doesn't diff images, so it complements those tools rather than replacing them.
+
+| | Compose Auto Preview | Screenshot testing tools |
+|---|---|---|
+| Writes the device × theme × state matrix for you | ✅ | — |
+| Keeps the Studio preview pane light | ✅ first state only | — |
+| Browsable app graph from navigation edges | ✅ | — |
+| Golden images and diff checks on CI | — | ✅ |
 
 ## Built with
 

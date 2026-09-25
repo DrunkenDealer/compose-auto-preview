@@ -55,7 +55,7 @@ With 5 samples, Studio shows **4** cells and the report holds **20**.
 ```kotlin
 plugins {
     alias(libs.plugins.ksp)
-    id("app.mashlab.compose-auto-preview") version "3.2.0"
+    id("app.mashlab.compose-auto-preview") version "4.0.0"
 }
 ```
 

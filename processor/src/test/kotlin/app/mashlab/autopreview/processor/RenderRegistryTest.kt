@@ -22,6 +22,14 @@ class RenderRegistryTest {
     }
 
     @Test
+    fun `no registry when one is already visible, as in a unit test compilation`() {
+        val (result, registry) = compile(SourceFile.kotlin("Main.kt", "package app\n\nobject AutoPreviewRegistry"))
+
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
+        assertEquals("", registry)
+    }
+
+    @Test
     fun `registry carries entry point and navigation`() {
         val (result, registry) = compile(
             screen("app", "Home", "entryPoint = true, navigatesTo = [\"Details\", \"Missing\"]"),

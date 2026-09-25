@@ -1,6 +1,7 @@
 package app.mashlab.autopreview.gradle
 
 import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.variant.AndroidComponentsExtension
 import com.google.devtools.ksp.gradle.KspExtension
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -19,14 +20,17 @@ private const val RENDER_TASK = "autoPreviewRender"
 private const val GENERATE_TEST_TASK = "generateAutoPreviewRenderTest"
 private const val KSP_PLUGIN = "com.google.devtools.ksp"
 private const val KMP_PLUGIN = "org.jetbrains.kotlin.multiplatform"
-private const val KMP_LIBRARY_PLUGIN = "com.android.kotlin.multiplatform.library"
 private const val KOTLIN_ANDROID_PLUGIN = "org.jetbrains.kotlin.android"
+private const val KMP_LIBRARY_PLUGIN = "com.android.kotlin.multiplatform.library"
 private const val ANNOTATIONS = "app.mashlab:compose-auto-preview-annotations:${Versions.AUTO_PREVIEW}"
 private const val PROCESSOR = "app.mashlab:compose-auto-preview-processor:${Versions.AUTO_PREVIEW}"
 
 internal val TEST_DEPENDENCIES = listOf(
     "org.robolectric:robolectric:${Versions.ROBOLECTRIC}",
     "junit:junit:${Versions.JUNIT}",
+    // The render test hosts previews in a ComponentActivity, which a library needn't depend on. The oldest version
+    // that works keeps the compileSdk floor low (34); Gradle still resolves the module's own, newer one.
+    "androidx.activity:activity-compose:1.9.3",
 )
 
 /** What differs between the Android plugins; [configure] wires everything else the same way. */
@@ -63,13 +67,33 @@ class AutoPreviewPlugin : Plugin<Project> {
             kspConfiguration = "kspAndroid",
         )
         configure(project, module)
-        project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN) {
-            project.dependencies.add("implementation", ANNOTATIONS)
-            addProcessor(project, "ksp")
-            android.sourceSets
-                .getByName("test")
-                .kotlin
-                .srcDir(project.generatedTestSources())
+
+        // Plain Android (kotlin-android on AGP 8, built-in Kotlin on AGP 9, which applies no Kotlin plugin);
+        // configure() wires KMP's androidTarget() through its source sets instead. Which one is only known once the
+        // build script has run, and KSP reads its processors when the variants are created.
+        val components = project.extensions.getByType(AndroidComponentsExtension::class.java)
+        components.finalizeDsl {
+            if (!project.pluginManager.hasPlugin(KMP_PLUGIN)) {
+                project.dependencies.add("implementation", ANNOTATIONS)
+                addProcessor(project, "ksp")
+            }
+        }
+        components.onVariants(components.selector().withName("debug")) { variant ->
+            if (!project.pluginManager.hasPlugin(KMP_PLUGIN)) {
+                // The variant API, unlike `android.sourceSets`, carries the generating task's dependency.
+                // unitTest's replacement, HasUnitTest, doesn't exist before AGP 8.1.
+                @Suppress("DEPRECATION")
+                val sources = variant.unitTest?.sources
+                // kotlin-android compiles Kotlin from the Java directories only; built-in Kotlin from the Kotlin ones.
+                val dirs = when {
+                    project.pluginManager.hasPlugin(KOTLIN_ANDROID_PLUGIN) -> sources?.java
+                    else -> sources?.kotlin
+                }
+                dirs?.addGeneratedSourceDirectory(
+                    project.tasks.named(GENERATE_TEST_TASK, GenerateRenderTestTask::class.java),
+                    GenerateRenderTestTask::outputDir,
+                )
+            }
         }
     }
 
@@ -128,10 +152,18 @@ class AutoPreviewPlugin : Plugin<Project> {
             addProcessor(project, module.kspConfiguration)
         }
 
-        // AGP's lint tasks read the test sources without the task dependency their provider carries.
+        // AGP's lint tasks read the test sources without the task dependency their provider carries: ours and
+        // Compose Multiplatform's test resource accessors.
         project.tasks
-            .matching { it.name.startsWith("lint") || it.name.endsWith("LintModel") }
-            .configureEach { it.dependsOn(GENERATE_TEST_TASK) }
+            .matching { it.name.startsWith("lint") || "Lint" in it.name }
+            .configureEach { lint ->
+                lint.dependsOn(GENERATE_TEST_TASK)
+                lint.dependsOn(
+                    project.tasks.matching {
+                        it.name.startsWith("generateResourceAccessorsFor") && it.name.endsWith("Test")
+                    },
+                )
+            }
 
         // The render test also sits in regular unit test runs (skipped), and Robolectric SDK 35+ patches
         // FileDescriptor internals via jdk.internal.access while setting up any test.

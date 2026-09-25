@@ -105,13 +105,14 @@ kotlin {
         namespace = "com.example.feature.settings"
         compileSdk = 36
         minSdk = 28
+        androidResources { enable = true } // Compose Multiplatform 1.8+ resources
     }
     iosArm64()
     iosSimulatorArm64()
 }
 ```
 
-The plugin turns on host tests with Android resources (`withHostTest { isIncludeAndroidResources = true }`) unless you already call `withHostTest {}`, and renders them in `androidHostTest`. Compose Multiplatform resources (`Res.string`, `Res.drawable`) resolve in the report. See [`sample-kmp-library`](sample-kmp-library).
+The plugin turns on host tests with Android resources (`withHostTest { isIncludeAndroidResources = true }`) unless you already call `withHostTest {}`, and renders them in `androidHostTest`. Compose Multiplatform resources (`Res.string`, `Res.drawable`) resolve in the report. From Compose Multiplatform 1.8 they ship as Android assets, so the module needs `androidResources { enable = true }`; without it they are missing from the AAR as well as the report. See [`sample-kmp-library`](sample-kmp-library).
 
 ## How it works
 
@@ -229,12 +230,15 @@ internal fun ConfirmDialogPreview(
 
 ## Requirements
 
-Kotlin 2.0+ · KSP 2.0+ · Jetpack Compose or Compose Multiplatform 1.7+ · `minSdk` 28 · JVM 11
+Kotlin 2.0+ · KSP 2.0+ · Jetpack Compose or Compose Multiplatform 1.7+ · `minSdk` 28 · JVM 11 · builds on JDK 17+
 
 | Module type | Minimum AGP |
 |---|---|
-| `com.android.application`, `com.android.library` (incl. KMP `androidTarget()`) | 8.9.1 (oldest verified; unchanged since 4.0) |
-| `com.android.kotlin.multiplatform.library` (`androidLibrary {}`) | 8.12.1 (earlier versions leave `android.jar` off the host-test runtime classpath, so Robolectric can't start) |
+| `com.android.application`, `com.android.library` with Jetpack Compose | 8.0 with `kotlin-android`; AGP 9's built-in Kotlin needs KSP 2.3.6+ |
+| `com.android.application`, `com.android.library` with KMP `androidTarget()` | 8.0; on AGP 9 only with `android.builtInKotlin=false` and `android.newDsl=false`, as AGP requires |
+| `com.android.kotlin.multiplatform.library` (`androidLibrary {}`) | 8.12.1 (earlier versions leave `android.jar` off the host-test runtime classpath, so Robolectric can't start), `compileSdk` 34 |
+
+Verified on every AGP minor from 8.0 to 9.4.
 
 ## Contributing
 

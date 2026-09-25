@@ -16,7 +16,6 @@ internal fun configureKmpLibrary(
         .targets
         .withType(KotlinMultiplatformAndroidLibraryTarget::class.java)
     // `all`, not `configureEach`: configure() registers tasks and afterEvaluate hooks, which lazy actions may not.
-    // `all`, not `configureEach`: configure() registers tasks and afterEvaluate hooks, which lazy actions may not.
     targets.all { target ->
         target.hostTests().configureEach { it.isIncludeAndroidResources = true }
         val name = target.name.replaceFirstChar(Char::uppercase)
@@ -29,8 +28,7 @@ internal fun configureKmpLibrary(
                 },
                 unitTestTask = "test${name}HostTest",
                 testImplementation = "${target.name}HostTestImplementation",
-                // The render test hosts previews in a ComponentActivity, which a library needn't depend on.
-                testDependencies = TEST_DEPENDENCIES + "androidx.activity:activity-compose:${Versions.ACTIVITY}",
+                testDependencies = TEST_DEPENDENCIES,
                 kmpMainSourceSet = "${target.name}Main",
                 kmpTestSourceSet = "${target.name}HostTest",
                 kspConfiguration = "ksp$name",

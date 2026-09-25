@@ -12,7 +12,12 @@ kotlin {
         apiVersion.set(KotlinVersion.KOTLIN_2_0)
         languageVersion.set(KotlinVersion.KOTLIN_2_0)
     }
-    jvm()
+    // Loaded by the KSP processor in the consumer's build JVM.
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
     androidTarget {
         publishLibraryVariants("release")
         compilerOptions {

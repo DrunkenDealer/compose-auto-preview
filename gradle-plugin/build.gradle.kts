@@ -44,10 +44,8 @@ val generateVersions by tasks.registering {
         .get()
     val autoPreview = libs.versions.autoPreview
         .get()
-    val activity = libs.versions.androidx.activity
-        .get()
     val outputDir = layout.buildDirectory.dir("generated/versions")
-    inputs.property("versions", listOf(robolectric, junit, autoPreview, activity))
+    inputs.property("versions", listOf(robolectric, junit, autoPreview))
     outputs.dir(outputDir)
     doLast {
         val file = outputDir
@@ -63,7 +61,6 @@ val generateVersions by tasks.registering {
             |    const val ROBOLECTRIC = "$robolectric"
             |    const val JUNIT = "$junit"
             |    const val AUTO_PREVIEW = "$autoPreview"
-            |    const val ACTIVITY = "$activity"
             |}
             |
             """.trimMargin(),

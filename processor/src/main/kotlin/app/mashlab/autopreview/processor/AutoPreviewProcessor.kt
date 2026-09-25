@@ -1,5 +1,6 @@
 package app.mashlab.autopreview.processor
 
+import com.google.devtools.ksp.getClassDeclarationByName
 import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.isPublic
@@ -59,8 +60,15 @@ class AutoPreviewProcessor(
     private val registryPackage: String?,
 ) : SymbolProcessor {
     private val registryEntries = mutableListOf<RegistryEntry>()
+    private var registryOnClasspath: Boolean? = null
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        // KSP1 also runs the main processors on the unit test sources (kotlin-android). A second, empty registry
+        // there would shadow the main one on the test classpath.
+        if (registryOnClasspath == null) {
+            registryOnClasspath = registryPackage != null &&
+                resolver.getClassDeclarationByName("$registryPackage.$REGISTRY_NAME") != null
+        }
         val direct: List<Pair<KSFunctionDeclaration, AutoPreviewArgs>> = resolver
             .getSymbolsWithAnnotation(AUTO_PREVIEW_FQN)
             .filterIsInstance<KSFunctionDeclaration>()
@@ -107,7 +115,7 @@ class AutoPreviewProcessor(
         }
         // Only with the Gradle plugin is every screen reprocessed on each run (the registry is aggregating),
         // so cross-screen checks are reliable. The registry is written even when empty: the render test uses it.
-        if (registryPackage == null) return
+        if (registryPackage == null || registryOnClasspath == true) return
         registryEntries.groupBy { it.id }.filterValues { it.size > 1 }.forEach { (id, entries) ->
             logger.error(
                 "@AutoPreview: screen id \"$id\" is used by ${entries.joinToString {

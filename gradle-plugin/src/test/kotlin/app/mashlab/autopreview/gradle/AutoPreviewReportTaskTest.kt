@@ -30,7 +30,7 @@ class AutoPreviewReportTaskTest {
         task.report()
 
         val out = dir.root.resolve("build/autopreview")
-        assertContains(out.resolve("index.html").readText(), """<script src="assets/report.js"></script>""")
+        assertContains(out.resolve("index.html").readText(), Regex("""<script src="assets/report\.js\?v=[0-9a-f]+"></script>"""))
         assertTrue(out.resolve("assets/report.css").isFile)
         assertTrue(out.resolve("assets/report.js").isFile)
         assertTrue(out.resolve("assets/frames.js").isFile)

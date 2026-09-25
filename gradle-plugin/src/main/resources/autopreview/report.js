@@ -196,9 +196,16 @@ const graph = (() => {
   }
   for (const n of nodes) { n.lx = n.x; n.ly = n.y; }
 
+  // Dragged positions survive reloads while the report shows the same screens and links.
+  const layoutKey = JSON.stringify([nodes.map(n => n.id), edges.map(e => [e.source, e.target])]);
+  const loadPositions = () => { try { const s = JSON.parse(store.get("positions")); return s?.key === layoutKey ? s.pos : {}; } catch { return {}; } };
+  const savePositions = pos => store.set("positions", JSON.stringify({ key: layoutKey, pos }));
+  for (const [id, [x, y]] of Object.entries(loadPositions())) { const n = nodeById.get(id); if (n) { n.x = x; n.y = y; } }
+
   // Links attach to the thumbnail's sides, spread along them by the angle they head off at, so they never cross at a node.
   // A same-column link bulges only FLAT_BULGE sideways, so it turns up or down sooner than a link to the next column.
-  const route = l => l.s.moved || l.t.moved ? [] : l.via;
+  // After a drag, a link keeps the waypoints still lying between its ends, so it goes on routing around the columns it crosses.
+  const route = l => l.via.filter(d => (d.x - l.s.x) * (l.t.x - d.x) > 0);
   function attach() {
     const sides = new Map(nodes.map(n => [n, { left: [], right: [] }]));
     for (const l of links) {
@@ -271,7 +278,8 @@ const graph = (() => {
     for (const l of links) { const d = edgePath(l); l.casing.setAttribute("d", d); l.path.setAttribute("d", d); }
   }
   function relayout() {
-    for (const n of nodes) { n.x = n.lx; n.y = n.ly; n.moved = false; }
+    for (const n of nodes) { n.x = n.lx; n.y = n.ly; }
+    store.set("positions", "");
     draw();
     cameraTouched = false;
     fit();
@@ -376,7 +384,6 @@ const graph = (() => {
       const n = gesture.node, [wx, wy] = toWorld(p);
       n.x = wx - gesture.grab[0];
       n.y = wy - gesture.grab[1];
-      n.moved = true;
       highlight(n.id);
       draw();
     }
@@ -386,6 +393,7 @@ const graph = (() => {
     if (gesture.type === "node") {
       if (!gesture.moved && e.type === "pointerup") open(gesture.node.id);
       else highlight(null);
+      if (gesture.moved) savePositions({ ...loadPositions(), [gesture.node.id]: [gesture.node.x, gesture.node.y] });
     }
     viewport.classList.remove("panning");
     gesture = null;
@@ -394,10 +402,18 @@ const graph = (() => {
   viewport.addEventListener("pointercancel", end);
   viewport.addEventListener("wheel", e => {
     e.preventDefault();
-    const [x, y] = local(e);
-    const delta = -e.deltaY * (e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002) * (e.ctrlKey ? 10 : 1);
     cameraTouched = true;
-    zoomAt(x, y, cam.k * Math.pow(2, delta));
+    // As in Figma: scrolling pans; a trackpad pinch (sent as ctrl+wheel) or ⌘/Ctrl+scroll zooms.
+    if (e.ctrlKey || e.metaKey) {
+      const [x, y] = local(e);
+      const delta = -e.deltaY * (e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002) * (e.ctrlKey ? 10 : 1);
+      zoomAt(x, y, cam.k * Math.pow(2, delta));
+    } else {
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode ? viewport.clientHeight : 1;
+      cam.x -= e.deltaX * unit;
+      cam.y -= e.deltaY * unit;
+      applyCamera();
+    }
   }, { passive: false });
   viewport.addEventListener("keydown", e => {
     const pan = { ArrowLeft: [80, 0], ArrowRight: [-80, 0], ArrowUp: [0, 80], ArrowDown: [0, -80] }[e.key];
@@ -432,7 +448,7 @@ const graph = (() => {
   if (links.some(l => l.back)) legend.push(el("span", {}, el("i", { class: "l-back" }), "Back to earlier screen"));
   if (links.length) legend.push(el("span", { class: "hide-sm" }, el("i", { class: "l-out" }), "Leads to"),
     el("span", { class: "hide-sm" }, el("i", { class: "l-in" }), "Reached from"));
-  legend.push(el("span", { class: "hide-sm" }, "Drag to move · scroll to zoom"));
+  legend.push(el("span", { class: "hide-sm" }, "Drag to move · scroll to pan · pinch or ⌘ scroll to zoom"));
   $("legend").append(...legend);
   $("graph-notices").append(...notices());
 

@@ -33,13 +33,19 @@ object PreviewsTest {
 }
 
 @Composable
-fun WellbeingScreen(state: WellbeingScreenState, modifier: Modifier = Modifier) {
+fun WellbeingScreen(
+    state: WellbeingScreenState,
+    modifier: Modifier = Modifier,
+) {
     MaterialTheme {
         Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
             when {
                 state.isLoading -> CircularProgressIndicator()
+
                 state.error != null -> Text("Error: ${state.error}")
+
                 state.items.isEmpty() -> Text("Nothing yet")
+
                 else -> state.items.forEach {
                     Text(it)
                     Spacer(Modifier.height(8.dp))

@@ -15,8 +15,14 @@ import app.mashlab.autopreview.annotations.Theme
 
 sealed interface OnboardingScreenState {
     data object Welcome : OnboardingScreenState
-    data class CategorySelection(val selected: Set<String> = emptySet()) : OnboardingScreenState
-    data class Complete(val summary: String) : OnboardingScreenState
+
+    data class CategorySelection(
+        val selected: Set<String> = emptySet(),
+    ) : OnboardingScreenState
+
+    data class Complete(
+        val summary: String,
+    ) : OnboardingScreenState
 
     companion object Previews {
         val Welcome: OnboardingScreenState = OnboardingScreenState.Welcome
@@ -29,14 +35,24 @@ sealed interface OnboardingScreenState {
 }
 
 @Composable
-fun OnboardingScreen(state: OnboardingScreenState, modifier: Modifier = Modifier) {
+fun OnboardingScreen(
+    state: OnboardingScreenState,
+    modifier: Modifier = Modifier,
+) {
     MaterialTheme {
         Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
             val label = when (state) {
-                OnboardingScreenState.Welcome -> "Welcome"
-                is OnboardingScreenState.CategorySelection ->
+                OnboardingScreenState.Welcome -> {
+                    "Welcome"
+                }
+
+                is OnboardingScreenState.CategorySelection -> {
                     if (state.selected.isEmpty()) "Pick categories" else "Picked: ${state.selected.joinToString()}"
-                is OnboardingScreenState.Complete -> "Done — ${state.summary}"
+                }
+
+                is OnboardingScreenState.Complete -> {
+                    "Done — ${state.summary}"
+                }
             }
             Text(label)
         }

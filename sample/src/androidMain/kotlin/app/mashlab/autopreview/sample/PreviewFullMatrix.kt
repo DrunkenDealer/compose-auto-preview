@@ -14,4 +14,6 @@ import kotlin.reflect.KClass
 )
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
-annotation class FullMatrixPreview(val samplesFrom: KClass<*>)
+annotation class PreviewFullMatrix(
+    val samplesFrom: KClass<*>,
+)

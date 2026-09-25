@@ -36,20 +36,28 @@ internal class RegistryEntry(
  * Gradle plugin. Aggregating, so KSP reprocesses all registered files whenever one changes.
  */
 internal object RenderRegistry {
-
     private val COMPOSABLE = ClassName("androidx.compose.runtime", "Composable")
 
-    fun write(codeGenerator: CodeGenerator, packageName: String, entries: List<RegistryEntry>) {
+    fun write(
+        codeGenerator: CodeGenerator,
+        packageName: String,
+        entries: List<RegistryEntry>,
+    ) {
         val device = ClassName(packageName, "AutoPreviewDevice")
         val screen = ClassName(packageName, "AutoPreviewScreen")
-        val content = LambdaTypeName.get(parameters = arrayOf(INT), returnType = UNIT)
+        val content = LambdaTypeName
+            .get(parameters = arrayOf(INT), returnType = UNIT)
             .copy(annotations = listOf(AnnotationSpec.builder(COMPOSABLE).build()))
 
-        val screens = CodeBlock.builder().add("listOf(\n").indent()
+        val screens = CodeBlock
+            .builder()
+            .add("listOf(\n")
+            .indent()
         entries.sortedBy { it.id }.forEach { entry -> screens.add(screenInstance(entry, screen, device)) }
         screens.unindent().add(")")
 
-        FileSpec.builder(packageName, "AutoPreviewRegistry")
+        FileSpec
+            .builder(packageName, "AutoPreviewRegistry")
             .addType(
                 dataClass(
                     device,
@@ -58,9 +66,8 @@ internal object RenderRegistry {
                     "widthDp" to INT,
                     "heightDp" to INT,
                     "isRound" to BOOLEAN,
-                )
-            )
-            .addType(
+                ),
+            ).addType(
                 dataClass(
                     screen,
                     "id" to STRING,
@@ -72,53 +79,85 @@ internal object RenderRegistry {
                     "entryPoint" to BOOLEAN,
                     "samples" to LIST.parameterizedBy(STRING),
                     "content" to content,
-                )
-            )
-            .addType(
-                TypeSpec.objectBuilder("AutoPreviewRegistry")
+                ),
+            ).addType(
+                TypeSpec
+                    .objectBuilder("AutoPreviewRegistry")
                     .addModifiers(KModifier.INTERNAL)
                     .addProperty(
-                        PropertySpec.builder("screens", LIST.parameterizedBy(screen))
+                        PropertySpec
+                            .builder("screens", LIST.parameterizedBy(screen))
                             .initializer(screens.build())
-                            .build()
-                    )
-                    .build()
-            )
-            .build()
+                            .build(),
+                    ).build(),
+            ).build()
             .writeTo(codeGenerator, aggregating = true, originatingKSFiles = entries.map { it.file }.distinct())
     }
 
-    private fun screenInstance(entry: RegistryEntry, screen: ClassName, device: ClassName): CodeBlock {
+    private fun screenInstance(
+        entry: RegistryEntry,
+        screen: ClassName,
+        device: ClassName,
+    ): CodeBlock {
         val args = entry.args
         val samples = entry.samples.joinToString { "%T.%N" }
-        val sampleArgs = entry.samples.flatMap { listOf(entry.samplesSource, it) }.toTypedArray()
-        return CodeBlock.builder()
-            .add("%T(\n", screen).indent()
+        val sampleArgs = entry.samples
+            .flatMap { listOf(entry.samplesSource, it) }
+            .toTypedArray()
+        return CodeBlock
+            .builder()
+            .add("%T(\n", screen)
+            .indent()
             .add("id = %S,\n", entry.id)
             .add("locale = %S,\n", args.locale)
             .add("devices = listOf(")
             .add(
                 args.devices.joinToString { "%T(%S, %S, %L, %L, %L)" },
-                *args.devices.flatMap { listOf(device, it.name, it.robolectricQualifiers, it.widthDp, it.heightDp, it.isRound) }.toTypedArray(),
-            )
-            .add("),\n")
-            .add("themes = listOf(${args.themes.joinToString { "%S" }}),\n", *args.themes.map { it.name }.toTypedArray())
-            .add("backgroundColor = 0x%LL,\n", args.backgroundColor.toString(16).uppercase())
-            .add("navigatesTo = listOf(${args.navigatesTo.joinToString { "%S" }}),\n", *args.navigatesTo.toTypedArray())
-            .add("entryPoint = %L,\n", args.entryPoint)
+                *args.devices
+                    .flatMap {
+                        listOf(device, it.name, it.robolectricQualifiers, it.widthDp, it.heightDp, it.isRound)
+                    }.toTypedArray(),
+            ).add("),\n")
+            .add(
+                "themes = listOf(${args.themes.joinToString { "%S" }}),\n",
+                *args.themes
+                    .map { it.name }
+                    .toTypedArray(),
+            ).add(
+                "backgroundColor = 0x%LL,\n",
+                args.backgroundColor
+                    .toString(16)
+                    .uppercase(),
+            ).add(
+                "navigatesTo = listOf(${args.navigatesTo.joinToString {
+                    "%S"
+                }}),\n",
+                *args.navigatesTo.toTypedArray(),
+            ).add("entryPoint = %L,\n", args.entryPoint)
             .add("samples = listOf(${entry.samples.joinToString { "%S" }}),\n", *entry.samples.toTypedArray())
             .add("content = { %M(listOf($samples)[it]) },\n", entry.previewFunction, *sampleArgs)
-            .unindent().add("),\n")
+            .unindent()
+            .add("),\n")
             .build()
     }
 
-    private fun dataClass(name: ClassName, vararg props: Pair<String, TypeName>): TypeSpec {
+    private fun dataClass(
+        name: ClassName,
+        vararg props: Pair<String, TypeName>,
+    ): TypeSpec {
         val ctor = FunSpec.constructorBuilder()
         props.forEach { (prop, type) -> ctor.addParameter(prop, type) }
-        return TypeSpec.classBuilder(name)
+        return TypeSpec
+            .classBuilder(name)
             .addModifiers(KModifier.INTERNAL)
             .primaryConstructor(ctor.build())
-            .addProperties(props.map { (prop, type) -> PropertySpec.builder(prop, type).initializer(prop).build() })
-            .build()
+            .addProperties(
+                props.map { (prop, type) ->
+                    PropertySpec
+                        .builder(prop, type)
+                        .initializer(prop)
+                        .build()
+                },
+            ).build()
     }
 }

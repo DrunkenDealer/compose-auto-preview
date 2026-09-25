@@ -38,7 +38,11 @@ object ConfirmDialogSampleData {
 }
 
 @Composable
-fun ConfirmDialog(state: ConfirmDialogState, onConfirm: () -> Unit = {}, onDismiss: () -> Unit = {}) {
+fun ConfirmDialog(
+    state: ConfirmDialogState,
+    onConfirm: () -> Unit = {},
+    onDismiss: () -> Unit = {},
+) {
     MaterialTheme {
         AlertDialog(
             onDismissRequest = onDismiss,

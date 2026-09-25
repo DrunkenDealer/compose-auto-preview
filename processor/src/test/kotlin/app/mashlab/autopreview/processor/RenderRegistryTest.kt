@@ -13,7 +13,6 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCompilerApi::class)
 class RenderRegistryTest {
-
     @Test
     fun `registry is generated for a module without screens`() {
         val (result, registry) = compile(SourceFile.kotlin("Empty.kt", "package app\n\nclass Empty"))
@@ -54,7 +53,11 @@ class RenderRegistryTest {
         assertContains(result.messages, "screen id \"Home\" is used by app.a.HomePreview, app.b.HomePreview")
     }
 
-    private fun screen(pkg: String, name: String, extraArgs: String = "") = SourceFile.kotlin(
+    private fun screen(
+        pkg: String,
+        name: String,
+        extraArgs: String = "",
+    ) = SourceFile.kotlin(
         "${pkg.replace('.', '/')}/$name.kt",
         """
         package $pkg
@@ -86,7 +89,12 @@ class RenderRegistryTest {
             }
         }
         val result = compilation.compile()
-        val registry = compilation.kspSourcesDir.walk().firstOrNull { it.name == "AutoPreviewRegistry.kt" }?.readText().orEmpty()
+        val registry = compilation.kspSourcesDir
+            .walk()
+            .firstOrNull {
+                it.name == "AutoPreviewRegistry.kt"
+            }?.readText()
+            .orEmpty()
         return result to registry
     }
 

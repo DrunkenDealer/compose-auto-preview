@@ -24,7 +24,6 @@ private const val ANNOTATIONS = "app.mashlab:compose-auto-preview-annotations:${
 private const val PROCESSOR = "app.mashlab:compose-auto-preview-processor:${Versions.AUTO_PREVIEW}"
 
 class AutoPreviewPlugin : Plugin<Project> {
-
     override fun apply(project: Project) {
         project.pluginManager.withPlugin("com.android.application") { configure(project) }
         project.pluginManager.withPlugin("com.android.library") { configure(project) }
@@ -38,11 +37,15 @@ class AutoPreviewPlugin : Plugin<Project> {
         }
 
         project.pluginManager.withPlugin(KSP_PLUGIN) {
-            project.extensions.getByType(KspExtension::class.java).arg(RegistryPackageArgument(registryPackage))
+            project.extensions
+                .getByType(KspExtension::class.java)
+                .arg(RegistryPackageArgument(registryPackage))
         }
         project.afterEvaluate {
             if (!project.pluginManager.hasPlugin(KSP_PLUGIN)) {
-                throw GradleException("Compose Auto Preview needs the KSP plugin (`$KSP_PLUGIN`) applied to ${project.path}.")
+                throw GradleException(
+                    "Compose Auto Preview needs the KSP plugin (`$KSP_PLUGIN`) applied to ${project.path}.",
+                )
             }
         }
         addLibraryDependencies(project)
@@ -57,19 +60,31 @@ class AutoPreviewPlugin : Plugin<Project> {
             // Looked up lazily: AGP registers the unit test task after this task may be realized.
             it.testJavaVersion.set(
                 project.provider {
-                    (project.tasks.getByName(UNIT_TEST_TASK) as Test).javaLauncher.get().metadata.languageVersion.asInt()
-                }
+                    (
+                        project.tasks.getByName(
+                            UNIT_TEST_TASK,
+                        ) as Test
+                    ).javaLauncher.get().metadata.languageVersion.asInt()
+                },
             )
-            it.outputDir.set(project.layout.buildDirectory.dir("generated/autopreview/test"))
+            it.outputDir.set(
+                project.layout.buildDirectory
+                    .dir("generated/autopreview/test"),
+            )
         }
         val generatedSources = generateTest.flatMap { it.outputDir }
         project.pluginManager.withPlugin(KMP_PLUGIN) {
-            project.extensions.getByType(KotlinMultiplatformExtension::class.java).sourceSets
+            project.extensions
+                .getByType(KotlinMultiplatformExtension::class.java)
+                .sourceSets
                 .matching { it.name == "androidUnitTest" }
                 .configureEach { it.kotlin.srcDir(generatedSources) }
         }
         project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN) {
-            android.sourceSets.getByName("test").kotlin.srcDir(generatedSources)
+            android.sourceSets
+                .getByName("test")
+                .kotlin
+                .srcDir(generatedSources)
         }
 
         // The render test also sits in regular unit test runs (skipped), and Robolectric SDK 35+ patches
@@ -78,7 +93,8 @@ class AutoPreviewPlugin : Plugin<Project> {
             it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
         }
 
-        val imagesDir = project.layout.buildDirectory.dir("autopreview/images")
+        val imagesDir = project.layout.buildDirectory
+            .dir("autopreview/images")
         val render = project.tasks.register(RENDER_TASK, Test::class.java) { test ->
             test.group = GROUP
             test.description = "Renders every @AutoPreview screen × device × theme × sample to PNG."
@@ -98,20 +114,32 @@ class AutoPreviewPlugin : Plugin<Project> {
             it.description = "Builds the HTML app graph from the rendered previews."
             it.dependsOn(render)
             it.imagesDir.set(imagesDir)
-            it.reportFile.set(project.layout.buildDirectory.file("autopreview/index.html"))
-            it.assetsDir.set(project.layout.buildDirectory.dir("autopreview/assets"))
+            it.reportFile.set(
+                project.layout.buildDirectory
+                    .file("autopreview/index.html"),
+            )
+            it.assetsDir.set(
+                project.layout.buildDirectory
+                    .dir("autopreview/assets"),
+            )
         }
 
         project.tasks.register("autoPreview", ShowReportTask::class.java) {
             it.group = GROUP
-            it.description = "Renders the full preview matrix, builds an HTML app graph and opens it (-PautoPreview.open=false to skip)."
+            it.description =
+                "Renders the full preview matrix, builds an HTML app graph and opens it (-PautoPreview.open=false to skip)."
             it.dependsOn(report)
             it.reportFile.set(report.flatMap { task -> task.reportFile })
             // IDE terminals open file:// links in the editor, so the task opens the browser itself; never on CI.
             it.open.set(
-                project.providers.gradleProperty("autoPreview.open").map { value -> value != "false" }
-                    .orElse(project.providers.environmentVariable("CI").map { false })
-                    .orElse(true)
+                project.providers
+                    .gradleProperty("autoPreview.open")
+                    .map { value -> value != "false" }
+                    .orElse(
+                        project.providers
+                            .environmentVariable("CI")
+                            .map { false },
+                    ).orElse(true),
             )
         }
     }
@@ -120,7 +148,9 @@ class AutoPreviewPlugin : Plugin<Project> {
 private fun addLibraryDependencies(project: Project) {
     // Preview functions are Android-only, so KMP gets the annotations in androidMain, not commonMain.
     project.pluginManager.withPlugin(KMP_PLUGIN) {
-        project.extensions.getByType(KotlinMultiplatformExtension::class.java).sourceSets
+        project.extensions
+            .getByType(KotlinMultiplatformExtension::class.java)
+            .sourceSets
             .matching { it.name == "androidMain" }
             .configureEach { it.dependencies { implementation(ANNOTATIONS) } }
         addProcessor(project, "kspAndroid")
@@ -132,8 +162,12 @@ private fun addLibraryDependencies(project: Project) {
 }
 
 // KSP creates its configurations when it (or the target) is set up, possibly after this plugin.
-private fun addProcessor(project: Project, configuration: String) {
-    project.configurations.matching { it.name == configuration }
+private fun addProcessor(
+    project: Project,
+    configuration: String,
+) {
+    project.configurations
+        .matching { it.name == configuration }
         .configureEach { project.dependencies.add(it.name, PROCESSOR) }
 }
 
@@ -144,6 +178,8 @@ internal class OutputDirArgument(
     override fun asArguments(): Iterable<String> = listOf("-Dautopreview.outputDir=${dir.get().asFile.absolutePath}")
 }
 
-internal class RegistryPackageArgument(@get:Input val packageName: Provider<String>) : CommandLineArgumentProvider {
+internal class RegistryPackageArgument(
+    @get:Input val packageName: Provider<String>,
+) : CommandLineArgumentProvider {
     override fun asArguments(): Iterable<String> = listOf("autopreview.registryPackage=${packageName.get()}")
 }

@@ -4,7 +4,6 @@ import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 
 internal object PreviewMatrix {
-
     private val PREVIEW = ClassName("androidx.compose.ui.tooling.preview", "Preview")
     private val CONFIGURATION = ClassName("android.content.res", "Configuration")
     private const val DEFAULT_BACKGROUND_COLOR = 0xFFFFFFFFL
@@ -19,7 +18,8 @@ internal object PreviewMatrix {
         theme: ThemeKind,
         args: AutoPreviewArgs,
     ): AnnotationSpec {
-        val builder = AnnotationSpec.builder(PREVIEW)
+        val builder = AnnotationSpec
+            .builder(PREVIEW)
             .addMember("name = %S", "${args.locale} · ${device.name} · ${theme.name}")
             .addMember("locale = %S", args.locale)
             .addMember("device = %S", device.deviceSpec)
@@ -28,7 +28,12 @@ internal object PreviewMatrix {
         }
         if (args.backgroundColor != DEFAULT_BACKGROUND_COLOR) {
             builder.addMember("showBackground = true")
-            builder.addMember("backgroundColor = 0x%LL", args.backgroundColor.toString(16).uppercase())
+            builder.addMember(
+                "backgroundColor = 0x%LL",
+                args.backgroundColor
+                    .toString(16)
+                    .uppercase(),
+            )
         }
         if (args.showSystemUi) {
             builder.addMember("showSystemUi = true")

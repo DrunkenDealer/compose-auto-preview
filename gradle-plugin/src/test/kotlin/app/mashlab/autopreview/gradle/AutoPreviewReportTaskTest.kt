@@ -9,20 +9,23 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AutoPreviewReportTaskTest {
-
     @get:Rule
     val dir = TemporaryFolder()
 
     @Test
     fun `report writes page, assets and data with images relative to the page`() {
-        val project = ProjectBuilder.builder().withProjectDir(dir.root).build()
+        val project = ProjectBuilder
+            .builder()
+            .withProjectDir(dir.root)
+            .build()
         val images = dir.newFolder("build", "autopreview", "images")
         images.resolve("manifest.json").writeText("""{"density":2,"screens":[]}""")
-        val task = project.tasks.register("report", AutoPreviewReportTask::class.java) {
-            it.imagesDir.set(images)
-            it.reportFile.set(dir.root.resolve("build/autopreview/index.html"))
-            it.assetsDir.set(dir.root.resolve("build/autopreview/assets"))
-        }.get()
+        val task = project.tasks
+            .register("report", AutoPreviewReportTask::class.java) {
+                it.imagesDir.set(images)
+                it.reportFile.set(dir.root.resolve("build/autopreview/index.html"))
+                it.assetsDir.set(dir.root.resolve("build/autopreview/assets"))
+            }.get()
 
         task.report()
 

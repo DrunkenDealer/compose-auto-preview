@@ -16,7 +16,6 @@ import org.gradle.process.ExecOperations
 import javax.inject.Inject
 
 abstract class AutoPreviewReportTask : DefaultTask() {
-
     @get:InputDirectory
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val imagesDir: DirectoryProperty
@@ -30,14 +29,17 @@ abstract class AutoPreviewReportTask : DefaultTask() {
     @TaskAction
     fun report() {
         val report = reportFile.get().asFile
-        val assets = assetsDir.get().asFile.apply { deleteRecursively(); mkdirs() }
+        val assets = assetsDir.get().asFile.apply {
+            deleteRecursively()
+            mkdirs()
+        }
         val images = imagesDir.get().asFile
         report.writeText(resource("index.html"))
         listOf("report.css", "report.js", "frames.js").forEach { assets.resolve(it).writeText(resource(it)) }
         // A script rather than JSON: browsers block fetch() from file:// pages.
         assets.resolve("data.js").writeText(
             "const DATA = ${images.resolve("manifest.json").readText()};\n" +
-                "const IMAGES = \"${images.relativeTo(report.parentFile).invariantSeparatorsPath}\";\n"
+                "const IMAGES = \"${images.relativeTo(report.parentFile).invariantSeparatorsPath}\";\n",
         )
     }
 
@@ -46,7 +48,6 @@ abstract class AutoPreviewReportTask : DefaultTask() {
 
 /** Never up to date (no outputs), so the link is printed on every run, not only when the report changed. */
 abstract class ShowReportTask : DefaultTask() {
-
     @get:Internal
     abstract val reportFile: RegularFileProperty
 

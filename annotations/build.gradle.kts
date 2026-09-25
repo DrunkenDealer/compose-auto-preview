@@ -32,10 +32,14 @@ kotlin {
 
 android {
     namespace = "app.mashlab.autopreview.annotations"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk = libs.versions.android.compileSdk
+        .get()
+        .toInt()
 
     defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk
+            .get()
+            .toInt()
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -47,7 +51,8 @@ mavenPublishing {
     coordinates(
         groupId = "app.mashlab",
         artifactId = "compose-auto-preview-annotations",
-        version = libs.versions.autoPreview.get(),
+        version = libs.versions.autoPreview
+            .get(),
     )
     pom {
         name.set("Compose Auto Preview — Annotations")

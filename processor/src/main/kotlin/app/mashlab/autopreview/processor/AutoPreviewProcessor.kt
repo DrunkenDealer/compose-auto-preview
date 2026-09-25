@@ -58,7 +58,6 @@ class AutoPreviewProcessor(
     private val logger: KSPLogger,
     private val registryPackage: String?,
 ) : SymbolProcessor {
-
     private val registryEntries = mutableListOf<RegistryEntry>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
@@ -68,8 +67,7 @@ class AutoPreviewProcessor(
             .mapNotNull { fn ->
                 val ann = fn.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN } ?: return@mapNotNull null
                 fn to AutoPreviewArgs.from(ann)
-            }
-            .toList()
+            }.toList()
 
         // Scan @Composable functions in the current module for wrapper annotations meta-annotated with
         // @AutoPreview. Wrappers can be declared in other modules, so we still resolve the annotation
@@ -82,7 +80,9 @@ class AutoPreviewProcessor(
             .flatMap { fn ->
                 fn.annotations.mapNotNull { usage ->
                     if (usage.shortName.asString() in NON_WRAPPER_SHORT_NAMES) return@mapNotNull null
-                    val metaClass = usage.annotationType.resolve().declaration as? KSClassDeclaration
+                    val metaClass = usage.annotationType
+                        .resolve()
+                        .declaration as? KSClassDeclaration
                         ?: return@mapNotNull null
                     if (metaClass.classKind != ClassKind.ANNOTATION_CLASS) return@mapNotNull null
                     val info = wrapperCache.getOrPut(metaClass) { WrapperInfo.from(metaClass) }
@@ -92,8 +92,7 @@ class AutoPreviewProcessor(
                     }
                     fn to AutoPreviewArgs.fromArgs(merged)
                 }
-            }
-            .toList()
+            }.toList()
 
         (direct + viaMeta).forEach { (fn, args) -> processFunction(fn, args) }
         return emptyList()
@@ -102,22 +101,35 @@ class AutoPreviewProcessor(
     override fun finish() {
         val entryPoints = registryEntries.filter { it.args.entryPoint }
         if (entryPoints.size > 1) {
-            logger.error("@AutoPreview: only one screen can be the entry point, found ${entryPoints.joinToString { it.id }}")
+            logger.error(
+                "@AutoPreview: only one screen can be the entry point, found ${entryPoints.joinToString { it.id }}",
+            )
         }
         // Only with the Gradle plugin is every screen reprocessed on each run (the registry is aggregating),
         // so cross-screen checks are reliable. The registry is written even when empty: the render test uses it.
         if (registryPackage == null) return
         registryEntries.groupBy { it.id }.filterValues { it.size > 1 }.forEach { (id, entries) ->
-            logger.error("@AutoPreview: screen id \"$id\" is used by ${entries.joinToString { it.previewFunction.canonicalName }}")
+            logger.error(
+                "@AutoPreview: screen id \"$id\" is used by ${entries.joinToString {
+                    it.previewFunction.canonicalName
+                }}",
+            )
         }
         val ids = registryEntries.mapTo(HashSet()) { it.id }
         registryEntries.forEach { entry ->
-            (entry.args.navigatesTo - ids).forEach { logger.warn("@AutoPreview: ${entry.id} navigatesTo unknown screen \"$it\"") }
+            (entry.args.navigatesTo - ids).forEach {
+                logger.warn(
+                    "@AutoPreview: ${entry.id} navigatesTo unknown screen \"$it\"",
+                )
+            }
         }
         RenderRegistry.write(codeGenerator, registryPackage, registryEntries)
     }
 
-    private fun processFunction(fn: KSFunctionDeclaration, args: AutoPreviewArgs) {
+    private fun processFunction(
+        fn: KSFunctionDeclaration,
+        args: AutoPreviewArgs,
+    ) {
         val file = fn.containingFile ?: return
         if (!fn.hasAnnotation(COMPOSABLE_FQN)) {
             logger.error("@AutoPreview can only be applied to @Composable functions.", fn)
@@ -128,7 +140,7 @@ class AutoPreviewProcessor(
         if (visibility != Visibility.INTERNAL && visibility != Visibility.PUBLIC) {
             logger.error(
                 "@AutoPreview function must be `internal` or `public`.",
-                fn
+                fn,
             )
             return
         }
@@ -137,11 +149,14 @@ class AutoPreviewProcessor(
         if (valueParams.size != 1) {
             logger.error(
                 "@AutoPreview function must declare exactly one value parameter (the state), found ${valueParams.size}.",
-                fn
+                fn,
             )
             return
         }
-        val stateType: KSType = valueParams.single().type.resolve()
+        val stateType: KSType = valueParams
+            .single()
+            .type
+            .resolve()
 
         val samplesClass = args.samplesType.declaration as? KSClassDeclaration ?: run {
             logger.error("samplesFrom must reference a class or object.", fn)
@@ -153,13 +168,14 @@ class AutoPreviewProcessor(
             .firstOrNull { it.isCompanionObject && it.simpleName.asString() == "Previews" }
         val source = companion ?: samplesClass
 
-        val stateSimpleName = stateType.declaration.simpleName.asString()
+        val stateSimpleName = stateType.declaration.simpleName
+            .asString()
         if (companion == null && samplesClass.classKind != ClassKind.OBJECT) {
             logger.error(
                 "samplesFrom must reference either a class with a `companion object Previews { ... }`, " +
                     "or an `object` declaring sample vals directly. " +
                     "${samplesClass.qualifiedName?.asString()} is neither.",
-                fn
+                fn,
             )
             return
         }
@@ -170,7 +186,7 @@ class AutoPreviewProcessor(
                 "No samples of type $stateSimpleName found in ${source.qualifiedName?.asString()}. " +
                     "Declare public vals like `val Foo: $stateSimpleName = ...`. " +
                     "For sealed/abstract states, the explicit parent type is required.",
-                fn
+                fn,
             )
             return
         }
@@ -190,12 +206,14 @@ class AutoPreviewProcessor(
             firstSample = samples.first(),
         )
 
-        val multiPreviewSpec = TypeSpec.annotationBuilder(multiPreviewClassName)
+        val multiPreviewSpec = TypeSpec
+            .annotationBuilder(multiPreviewClassName)
             .also { spec -> PreviewMatrix.build(args).forEach(spec::addAnnotation) }
             .build()
 
         val outputFileName = "${annotationBaseName}AutoPreviews"
-        FileSpec.builder(packageName, outputFileName)
+        FileSpec
+            .builder(packageName, outputFileName)
             .addType(providerSpec)
             .addType(multiPreviewSpec)
             .build()
@@ -219,11 +237,13 @@ class AutoPreviewProcessor(
     ): TypeSpec {
         // The IDE renders only the first sample to keep the preview pane light; the full matrix is
         // rendered off-IDE by the Gradle plugin.
-        val valuesProperty = PropertySpec.builder("values", SEQUENCE.parameterizedBy(stateTypeName))
+        val valuesProperty = PropertySpec
+            .builder("values", SEQUENCE.parameterizedBy(stateTypeName))
             .addModifiers(KModifier.OVERRIDE)
             .initializer("sequenceOf(%T.%N)", samplesSource, firstSample)
             .build()
-        return TypeSpec.classBuilder(providerClassName)
+        return TypeSpec
+            .classBuilder(providerClassName)
             .addModifiers(KModifier.INTERNAL)
             .addSuperinterface(PREVIEW_PARAMETER_PROVIDER.parameterizedBy(stateTypeName))
             .addProperty(valuesProperty)
@@ -233,11 +253,13 @@ class AutoPreviewProcessor(
     private fun collectSamples(
         source: KSClassDeclaration,
         stateType: KSType,
-    ): List<String> = source.getDeclaredProperties()
-        .filter { it.isPublic() && !it.isMutable }
-        .filter { stateType.isAssignableFrom(it.type.resolve()) }
-        .map { it.simpleName.asString() }
-        .toList()
+    ): List<String> =
+        source
+            .getDeclaredProperties()
+            .filter { it.isPublic() && !it.isMutable }
+            .filter { stateType.isAssignableFrom(it.type.resolve()) }
+            .map { it.simpleName.asString() }
+            .toList()
 }
 
 private data class WrapperInfo(
@@ -248,7 +270,8 @@ private data class WrapperInfo(
         fun from(metaClass: KSClassDeclaration): WrapperInfo? {
             if (metaClass.qualifiedName?.asString() == AUTO_PREVIEW_FQN) return null
             val baseAnn = metaClass.annotations.firstOrNull { it.fqn == AUTO_PREVIEW_FQN } ?: return null
-            val overridable = metaClass.primaryConstructor?.parameters
+            val overridable = metaClass.primaryConstructor
+                ?.parameters
                 ?.mapNotNull { it.name?.asString() }
                 ?.toSet()
                 .orEmpty()
@@ -257,8 +280,11 @@ private data class WrapperInfo(
     }
 }
 
-private fun KSAnnotated.hasAnnotation(fqn: String): Boolean =
-    annotations.any { it.fqn == fqn }
+private fun KSAnnotated.hasAnnotation(fqn: String): Boolean = annotations.any { it.fqn == fqn }
 
 private val KSAnnotation.fqn: String
-    get() = annotationType.resolve().declaration.qualifiedName?.asString().orEmpty()
+    get() = annotationType
+        .resolve()
+        .declaration.qualifiedName
+        ?.asString()
+        .orEmpty()

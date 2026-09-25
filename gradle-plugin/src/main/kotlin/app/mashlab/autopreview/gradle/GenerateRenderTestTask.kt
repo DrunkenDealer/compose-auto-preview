@@ -14,7 +14,6 @@ import org.gradle.api.tasks.TaskAction
  */
 @CacheableTask
 abstract class GenerateRenderTestTask : DefaultTask() {
-
     @get:Input
     abstract val packageName: Property<String>
 
@@ -30,15 +29,21 @@ abstract class GenerateRenderTestTask : DefaultTask() {
         // Robolectric needs Java 21 for SDK 35+; older JDKs fall back to the newest SDK they can run.
         val config = if (testJavaVersion.get() < 21) {
             logger.warn(
-                "Compose Auto Preview: unit tests run on Java ${testJavaVersion.get()}, rendering with SDK $FALLBACK_SDK. " +
-                    "Use JDK 21 (e.g. Android Studio's bundled JBR) to render with your target SDK."
+                "Compose Auto Preview: unit tests run on Java ${testJavaVersion.get()}, " +
+                    "rendering with SDK $FALLBACK_SDK. " +
+                    "Use JDK 21 (e.g. Android Studio's bundled JBR) to render with your target SDK.",
             )
             "@Config(sdk = [$FALLBACK_SDK])"
         } else {
             ""
         }
-        val dir = outputDir.get().asFile.apply { deleteRecursively() }
-        dir.resolve(pkg.replace('.', '/')).apply { mkdirs() }
+        val dir = outputDir
+            .get()
+            .asFile
+            .apply { deleteRecursively() }
+        dir
+            .resolve(pkg.replace('.', '/'))
+            .apply { mkdirs() }
             .resolve("AutoPreviewRenderTest.kt")
             .writeText(TEMPLATE.replace("__PACKAGE__", pkg).replace("__CONFIG__", config))
     }

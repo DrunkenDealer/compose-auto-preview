@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto Preview</title>
+<link rel="stylesheet" href="assets/report.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="#/"><span class="hide-sm">Auto Preview</span></a>
+  <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+  <span class="spacer"></span>
+  <span class="stats" id="stats"></span>
+  <nav class="seg" aria-label="View">
+    <a href="#/" id="nav-graph">Graph</a>
+    <a href="#/list" id="nav-list">List</a>
+  </nav>
+  <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+    <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</header>
+
+<section id="graph-view" aria-label="App navigation graph" hidden>
+  <div id="viewport" tabindex="0" aria-label="Graph canvas. Arrow keys pan, plus and minus zoom, 0 fits.">
+    <div id="world">
+      <svg id="edges" aria-hidden="true">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" style="fill:var(--edge)"/></marker>
+          <marker id="arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" style="fill:var(--accent)"/></marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+  <div class="graph-ui top">
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="search" type="search" placeholder="Find screen" aria-label="Find screen" autocomplete="off">
+      <kbd class="hide-sm">/</kbd>
+    </label>
+    <div id="graph-notices" class="notices"></div>
+  </div>
+  <div class="graph-ui bottom-left"><div class="legend" id="legend"></div></div>
+  <div class="graph-ui bottom-right">
+    <div class="zoom">
+      <button type="button" id="zoom-in" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button type="button" id="zoom-out" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      <button type="button" id="zoom-fit" aria-label="Fit to screen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button type="button" id="relayout" aria-label="Re-run layout"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<main id="page" hidden></main>
+
+<dialog id="lightbox" aria-labelledby="lb-title">
+  <div class="lb-bar">
+    <div class="title"><strong id="lb-title"></strong><small id="lb-sub"></small></div>
+    <span class="lb-count" id="lb-count"></span>
+    <a class="icon-btn" id="lb-open" target="_blank" aria-label="Open image file">
+      <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    <button class="icon-btn" id="lb-close" type="button" aria-label="Close">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="lb-stage" id="lb-stage">
+    <button class="lb-nav prev" id="lb-prev" type="button" aria-label="Previous image">‹</button>
+    <img id="lb-img" alt="">
+    <button class="lb-nav next" id="lb-next" type="button" aria-label="Next image">›</button>
+  </div>
+  <div class="lb-hint hide-sm"><kbd>←</kbd> <kbd>→</kbd> step · <kbd>T</kbd> other theme · <kbd>Esc</kbd> close</div>
+</dialog>
+
+<script src="assets/data.js"></script>
+<script src="assets/frames.js"></script>
+<script src="assets/report.js"></script>
+</body>
+</html>

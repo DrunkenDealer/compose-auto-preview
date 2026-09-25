@@ -1,0 +1,90 @@
+plugins {
+    `java-gradle-plugin`
+    alias(libs.plugins.kotlinJvm)
+    alias(libs.plugins.mavenPublish)
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
+}
+
+dependencies {
+    compileOnly(libs.android.gradle.api)
+    compileOnly(libs.kotlin.gradle.plugin)
+    compileOnly(libs.ksp.gradle.plugin)
+    testImplementation(libs.kotlin.test)
+}
+
+val generateVersions by tasks.registering {
+    val robolectric = libs.versions.robolectric.get()
+    val junit = libs.versions.junit.get()
+    val outputDir = layout.buildDirectory.dir("generated/versions")
+    inputs.property("versions", listOf(robolectric, junit))
+    outputs.dir(outputDir)
+    doLast {
+        val file = outputDir.get().file("io/github/drunkendealer/composeautopreview/gradle/Versions.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            |package io.github.drunkendealer.composeautopreview.gradle
+            |
+            |internal object Versions {
+            |    const val ROBOLECTRIC = "$robolectric"
+            |    const val JUNIT = "$junit"
+            |}
+            |""".trimMargin()
+        )
+    }
+}
+kotlin.sourceSets.main { kotlin.srcDir(generateVersions) }
+
+gradlePlugin {
+    plugins {
+        create("autoPreview") {
+            id = "io.github.drunkendealer.compose-auto-preview"
+            implementationClass = "io.github.drunkendealer.composeautopreview.gradle.AutoPreviewPlugin"
+        }
+    }
+}
+
+mavenPublishing {
+    coordinates(
+        groupId = "io.github.drunkendealer",
+        artifactId = "compose-auto-preview-gradle-plugin",
+        version = "3.1.1",
+    )
+    pom {
+        name.set("Compose Auto Preview — Gradle Plugin")
+        description.set("Renders the full Compose Auto Preview matrix off-IDE and builds an HTML app graph report.")
+        inceptionYear.set("2026")
+        url.set("https://github.com/DrunkenDealer/compose-auto-preview")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+            }
+        }
+        developers {
+            developer {
+                id.set("DrunkenDealer")
+                name.set("Max Shwed")
+                url.set("https://github.com/DrunkenDealer")
+            }
+        }
+        scm {
+            url.set("https://github.com/DrunkenDealer/compose-auto-preview")
+            connection.set("scm:git:git://github.com/DrunkenDealer/compose-auto-preview.git")
+            developerConnection.set("scm:git:ssh://git@github.com/DrunkenDealer/compose-auto-preview.git")
+        }
+    }
+    publishToMavenCentral()
+    if (providers.gradleProperty("signingEnabled").orNull != "false") {
+        signAllPublications()
+    }
+}

@@ -2,6 +2,7 @@ rootProject.name = "Composeautopreview"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
+    includeBuild("gradle-plugin")
     repositories {
         google {
             mavenContent {

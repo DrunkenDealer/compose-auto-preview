@@ -83,6 +83,7 @@ fun SettingsScreen(state: SettingsScreenState, modifier: Modifier = Modifier) {
     devices = [Device.Phone, Device.Tablet],
     themes = [Theme.Light, Theme.Dark],
     backgroundColor = 0xFFF5F5F5,
+    navigatesTo = ["ConfirmDialog", "WellbeingScreen"],
 )
 @SettingsScreenAutoPreviews
 @Composable

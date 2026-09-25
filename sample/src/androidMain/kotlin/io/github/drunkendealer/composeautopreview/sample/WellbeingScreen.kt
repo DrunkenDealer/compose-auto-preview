@@ -51,8 +51,9 @@ fun WellbeingScreen(state: WellbeingScreenState, modifier: Modifier = Modifier) 
 
 @AutoPreview(
     samplesFrom = PreviewsTest::class,
-    devices = [Device.Phone, Device.Tablet, Device.Foldable],
+    devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Tv, Device.Wear],
     themes = [Theme.Light, Theme.Dark],
+    navigatesTo = ["SettingsScreen"],
 )
 @WellbeingScreenAutoPreviews
 @Composable

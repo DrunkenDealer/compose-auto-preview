@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
+    id("io.github.drunkendealer.compose-auto-preview")
 }
 
 kotlin {

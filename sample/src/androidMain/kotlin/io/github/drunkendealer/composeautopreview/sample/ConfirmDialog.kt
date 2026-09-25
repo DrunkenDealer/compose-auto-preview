@@ -56,6 +56,7 @@ fun ConfirmDialog(state: ConfirmDialogState, onConfirm: () -> Unit = {}, onDismi
     samplesFrom = ConfirmDialogSampleData::class,
     devices = [Device.Phone, Device.Tablet],
     themes = [Theme.Light, Theme.Dark],
+    navigatesTo = ["OnboardingScreen"],
 )
 @ConfirmDialogAutoPreviews
 @Composable

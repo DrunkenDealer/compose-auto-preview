@@ -49,6 +49,8 @@ fun OnboardingScreen(state: OnboardingScreenState, modifier: Modifier = Modifier
     devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
     themes = [Theme.Light, Theme.Dark],
     showSystemUi = true,
+    navigatesTo = ["WellbeingScreen"],
+    entryPoint = true,
 )
 @OnboardingScreenAutoPreviews
 @Composable

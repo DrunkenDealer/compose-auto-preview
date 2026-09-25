@@ -31,7 +31,7 @@ kotlin {
 }
 
 android {
-    namespace = "io.github.drunkendealer.composeautopreview.annotations"
+    namespace = "app.mashlab.autopreview.annotations"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -45,7 +45,7 @@ android {
 
 mavenPublishing {
     coordinates(
-        groupId = "io.github.drunkendealer",
+        groupId = "app.mashlab",
         artifactId = "compose-auto-preview-annotations",
         version = "3.1.1",
     )

@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
-    id("io.github.drunkendealer.compose-auto-preview")
+    id("app.mashlab.compose-auto-preview")
 }
 
 kotlin {
@@ -30,11 +30,11 @@ kotlin {
 }
 
 android {
-    namespace = "io.github.drunkendealer.composeautopreview.sample"
+    namespace = "app.mashlab.autopreview.sample"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.github.drunkendealer.composeautopreview.sample"
+        applicationId = "app.mashlab.autopreview.sample"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

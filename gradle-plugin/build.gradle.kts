@@ -27,11 +27,11 @@ val generateVersions by tasks.registering {
     inputs.property("versions", listOf(robolectric, junit))
     outputs.dir(outputDir)
     doLast {
-        val file = outputDir.get().file("io/github/drunkendealer/composeautopreview/gradle/Versions.kt").asFile
+        val file = outputDir.get().file("app/mashlab/autopreview/gradle/Versions.kt").asFile
         file.parentFile.mkdirs()
         file.writeText(
             """
-            |package io.github.drunkendealer.composeautopreview.gradle
+            |package app.mashlab.autopreview.gradle
             |
             |internal object Versions {
             |    const val ROBOLECTRIC = "$robolectric"
@@ -46,15 +46,15 @@ kotlin.sourceSets.main { kotlin.srcDir(generateVersions) }
 gradlePlugin {
     plugins {
         create("autoPreview") {
-            id = "io.github.drunkendealer.compose-auto-preview"
-            implementationClass = "io.github.drunkendealer.composeautopreview.gradle.AutoPreviewPlugin"
+            id = "app.mashlab.compose-auto-preview"
+            implementationClass = "app.mashlab.autopreview.gradle.AutoPreviewPlugin"
         }
     }
 }
 
 mavenPublishing {
     coordinates(
-        groupId = "io.github.drunkendealer",
+        groupId = "app.mashlab",
         artifactId = "compose-auto-preview-gradle-plugin",
         version = "3.1.1",
     )

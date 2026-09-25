@@ -23,7 +23,7 @@ dependencies {
 
 mavenPublishing {
     coordinates(
-        groupId = "io.github.drunkendealer",
+        groupId = "app.mashlab",
         artifactId = "compose-auto-preview-processor",
         version = "3.1.1",
     )

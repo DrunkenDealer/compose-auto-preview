@@ -1,6 +1,6 @@
 # Compose Auto Preview
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.drunkendealer/compose-auto-preview-annotations.svg)](https://central.sonatype.com/artifact/io.github.drunkendealer/compose-auto-preview-annotations)
+[![Maven Central](https://img.shields.io/maven-central/v/app.mashlab/compose-auto-preview-annotations.svg)](https://central.sonatype.com/artifact/app.mashlab/compose-auto-preview-annotations)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 Compose Auto Preview turns one annotation into two outputs:
@@ -38,7 +38,7 @@ Apply the Gradle plugin next to KSP:
 ```kotlin
 plugins {
     alias(libs.plugins.ksp)
-    id("io.github.drunkendealer.compose-auto-preview") version "3.1.1"
+    id("app.mashlab.compose-auto-preview") version "3.1.1"
 }
 ```
 
@@ -83,8 +83,8 @@ You write **one** function, decorated with `@AutoPreview` (drives codegen) and t
 plugins { alias(libs.plugins.ksp) }
 
 dependencies {
-    implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.1")
-    ksp("io.github.drunkendealer:compose-auto-preview-processor:3.1.1")
+    implementation("app.mashlab:compose-auto-preview-annotations:3.1.1")
+    ksp("app.mashlab:compose-auto-preview-processor:3.1.1")
 }
 ```
 
@@ -136,7 +136,7 @@ plugins { alias(libs.plugins.ksp) }
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("io.github.drunkendealer:compose-auto-preview-annotations:3.1.1")
+            implementation("app.mashlab:compose-auto-preview-annotations:3.1.1")
         }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
@@ -145,7 +145,7 @@ kotlin {
 }
 
 dependencies {
-    add("kspAndroid", "io.github.drunkendealer:compose-auto-preview-processor:3.1.1")
+    add("kspAndroid", "app.mashlab:compose-auto-preview-processor:3.1.1")
 }
 ```
 

@@ -5,15 +5,15 @@ import app.mashlab.autopreview.annotations.Device
 import app.mashlab.autopreview.annotations.Theme
 import kotlin.reflect.KClass
 
+/** Shared matrix for most screens: phone and tablet, light and dark. */
 @AutoPreview(
     samplesFrom = Unit::class,
-    locale = "en",
-    devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
+    devices = [Device.Phone, Device.Tablet],
     themes = [Theme.Light, Theme.Dark],
-    showSystemUi = true,
 )
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
-annotation class PreviewFullMatrix(
+annotation class PreviewBloom(
     val samplesFrom: KClass<*>,
+    val navigatesTo: Array<String> = [],
 )

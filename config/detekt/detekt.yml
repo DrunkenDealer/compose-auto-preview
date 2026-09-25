@@ -80,7 +80,7 @@ style:
     active: false
   MagicNumber:
     active: true
-    excludes: ['**/test/**', '**/commonTest/**', '**/androidTest/**', '**/ui/components/**', '**/build/**']
+    excludes: ['**/test/**', '**/commonTest/**', '**/androidTest/**', '**/ui/components/**', '**/sample/src/**', '**/build/**']
     ignoreNumbers:
       - '-1'
       - '0'

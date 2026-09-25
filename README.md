@@ -8,7 +8,7 @@ One annotation per screen gives you every device × theme × state of your Compo
 <table>
   <tr>
     <td width="50%"><a href="https://drunkendealer.github.io/compose-auto-preview/"><img src="docs/images/report-graph.png" alt="App graph: every screen as a thumbnail, linked by navigation"></a></td>
-    <td width="50%"><a href="https://drunkendealer.github.io/compose-auto-preview/#/screen/SettingsScreen/Phone"><img src="docs/images/report-screen.png" alt="Screen page: each state in light and dark, one tab per device"></a></td>
+    <td width="50%"><a href="https://drunkendealer.github.io/compose-auto-preview/#/screen/TodayScreen/Tablet"><img src="docs/images/report-screen.png" alt="Screen page: each state in light and dark, one tab per device"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>App graph, laid out from the entry point</sub></td>
@@ -16,7 +16,7 @@ One annotation per screen gives you every device × theme × state of your Compo
   </tr>
 </table>
 
-<p align="center"><a href="https://drunkendealer.github.io/compose-auto-preview/"><b>▶ Open the live demo report</b></a>: the sample app's 4 screens, 122 renders</p>
+<p align="center"><a href="https://drunkendealer.github.io/compose-auto-preview/"><b>▶ Open the live demo report</b></a>: the sample app's 10 screens, 169 renders</p>
 
 ## The problem
 
@@ -190,7 +190,7 @@ Kotlin 2.0+ · KSP 2.0+ · Jetpack Compose or Compose Multiplatform 1.7+ · `min
 
 ## Contributing
 
-Issues and pull requests are welcome on [GitHub](https://github.com/DrunkenDealer/compose-auto-preview/issues). The [`sample`](sample) module is a working app: run `./gradlew :sample:autoPreview` to try it.
+Issues and pull requests are welcome on [GitHub](https://github.com/DrunkenDealer/compose-auto-preview/issues). The [`sample`](sample) module is a working habit-tracker app: run `./gradlew :sample:autoPreview` to try it.
 
 ## License
 

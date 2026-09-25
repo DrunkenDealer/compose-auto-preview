@@ -37,10 +37,5 @@ internal object PreviewMatrix {
     }
 
     private val DeviceKind.deviceSpec: String
-        get() = when (this) {
-            DeviceKind.Phone    -> "spec:width=411dp,height=891dp,dpi=160"
-            DeviceKind.Tablet   -> "spec:width=1280dp,height=800dp,dpi=160"
-            DeviceKind.Foldable -> "spec:width=673dp,height=841dp,dpi=160"
-            DeviceKind.Desktop  -> "spec:width=1920dp,height=1080dp,dpi=160"
-        }
+        get() = "spec:width=${widthDp}dp,height=${heightDp}dp,dpi=160" + if (isRound) ",isRound=true" else ""
 }

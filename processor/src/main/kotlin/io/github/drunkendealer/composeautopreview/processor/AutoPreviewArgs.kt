@@ -32,8 +32,17 @@ internal data class AutoPreviewArgs(
 internal fun KSAnnotation.argsMap(): Map<String?, Any?> =
     arguments.associate { it.name?.asString() to it.value }
 
-internal enum class DeviceKind {
-    Phone, Tablet, Foldable, Desktop;
+internal enum class DeviceKind(val widthDp: Int, val heightDp: Int, val isRound: Boolean = false, val uiModeType: String? = null) {
+    Phone(411, 891),
+    Tablet(1280, 800),
+    Foldable(673, 841),
+    Desktop(1920, 1080),
+    Tv(960, 540, uiModeType = "television"),
+    Wear(227, 227, isRound = true, uiModeType = "watch");
+
+    val robolectricQualifiers: String
+        get() = listOfNotNull("w${widthDp}dp", "h${heightDp}dp", "round".takeIf { isRound }, uiModeType).joinToString("-")
+
     companion object { fun from(name: String): DeviceKind? = entries.firstOrNull { it.name == name } }
 }
 

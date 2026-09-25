@@ -5,4 +5,6 @@ enum class Device {
     Tablet,
     Foldable,
     Desktop,
+    Tv,
+    Wear,
 }

@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Demo](https://img.shields.io/badge/demo-live%20report-brightgreen.svg)](https://drunkendealer.github.io/compose-auto-preview/)
 
-Stop hand-writing `@Preview` functions. One annotation generates every **device × theme × state** preview for Jetpack Compose and Compose Multiplatform, and renders the full matrix into a browsable map of your app.
+Stop hand-writing `@Preview` functions. Put one annotation on a screen and get it on every device, in both themes and in every state, in Android Studio and in a browsable map of your whole app.
 
 <table>
   <tr>
@@ -14,55 +14,39 @@ Stop hand-writing `@Preview` functions. One annotation generates every **device 
     <td width="50%"><a href="https://drunkendealer.github.io/compose-auto-preview/#/screen/TodayScreen/Tablet"><img src="docs/images/report-screen.png" alt="Screen page: each state in light and dark, one tab per device"></a></td>
   </tr>
   <tr>
-    <td align="center"><sub>App graph, laid out from the entry point</sub></td>
+    <td align="center"><sub>Your app as a graph, starting from the first screen</sub></td>
     <td align="center"><sub>Every state in light and dark, per device</sub></td>
   </tr>
 </table>
 
 <p align="center"><a href="https://drunkendealer.github.io/compose-auto-preview/"><b>▶ Open the live demo report</b></a>: the sample app's 10 screens, 169 renders</p>
 
-## The problem
+## Why
 
-To see a screen properly you need it on every device, in both themes, in every state: empty, loading, error, long text. Written by hand, that's dozens of `@Preview` functions per screen that nobody keeps up to date.
+To really check a screen you want it on a phone and a tablet, in light and dark, and in every state: empty, loading, error, very long text. Written by hand, that's dozens of `@Preview` functions per screen, and nobody keeps them up to date. Put them all in one file and Android Studio's preview pane slows to a crawl.
 
-Put the whole matrix in Android Studio and the preview pane slows down. Studio keeps a render session for every preview cell in the open file, so memory grows with the cell count, and a few screens at `device × theme × state` can take gigabytes.
+Compose Auto Preview splits the work:
 
-## The solution
+| Where | What you see |
+|---|---|
+| **Android Studio** | Every device and theme, for the first state. Light enough to keep editing. |
+| **`./gradlew autoPreview`** | Every device, theme *and* state, rendered to images and opened as a report in your browser. |
 
-Describe the matrix once and render it in two places:
+## One module
 
-| Where | What renders | Why |
-|---|---|---|
-| **Android Studio** | `devices × themes` for the first state | Keeps the preview pane responsive while you edit |
-| **`./gradlew autoPreview`** | `devices × themes × states` as PNGs, plus an HTML report | Renders the full matrix outside the IDE, in a separate JVM |
+The simplest setup: one module, a few screens, one report.
 
-```kotlin
-@AutoPreview(
-    samplesFrom = SettingsSamples::class,
-    devices = [Device.Phone, Device.Tablet],
-    themes  = [Theme.Light, Theme.Dark],
-)
-@SettingsScreenAutoPreviews
-@Composable
-internal fun SettingsScreenPreview(
-    @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,
-) = SettingsScreen(state)
-```
-
-With 5 samples, Studio shows **4** cells and the report holds **20**.
-
-## Quick start
-
-**1. Apply the plugin** next to KSP. It adds the annotations (to `androidMain` in KMP), the KSP processor and Robolectric for you:
+**1. Apply the plugin** next to KSP. It adds everything else it needs for you.
 
 ```kotlin
+// app/build.gradle.kts
 plugins {
     alias(libs.plugins.ksp)
     id("app.mashlab.autopreview") version "0.1.0"
 }
 ```
 
-**2. List the states.** Any `object` with vals of the state type works:
+**2. List your states.** Any `object` with values of the screen's state type works:
 
 ```kotlin
 object SettingsSamples {
@@ -72,25 +56,97 @@ object SettingsSamples {
 }
 ```
 
-**3. Write one preview function**, as in the example above. It must be `internal` or `public`. `@SettingsScreenAutoPreviews` and `SettingsScreenPreviewSamplesProvider` stay red until the first build generates them.
+**3. Write one preview function** per screen. It must be `internal` or `public`:
 
-**4. Render the full matrix:**
+```kotlin
+@AutoPreview(
+    samplesFrom = SettingsSamples::class,
+    devices = [Device.Phone, Device.Tablet],
+)
+@SettingsScreenAutoPreviews
+@Composable
+internal fun SettingsScreenPreview(
+    @PreviewParameter(SettingsScreenPreviewSamplesProvider::class) state: SettingsState,
+) = SettingsScreen(state)
+```
+
+`@SettingsScreenAutoPreviews` and `SettingsScreenPreviewSamplesProvider` are generated, so they stay red until the first build.
+
+**4. Open the report:**
 
 ```
 ./gradlew :app:autoPreview
-…
-Auto preview report: file:///…/app/build/autopreview/index.html
 ```
 
-The report opens in your browser (never on CI; pass `-PautoPreview.open=false` to skip it). The task is incremental, so nothing re-renders if the code didn't change.
+Studio now shows 4 previews (2 devices × 2 themes). The report has all 12 (× 3 states), and it opens in your browser. Nothing re-renders if the code didn't change.
 
-### Kotlin Multiplatform
+## Several modules
 
-States and samples can live in `commonMain`. The `@AutoPreview` function goes in `androidMain`, where KSP runs.
-
-With AGP's KMP library plugin (`com.android.kotlin.multiplatform.library`, the default for KMP libraries on AGP 9), configure the Android target in `androidLibrary {}`:
+When your features live in their own modules, apply the plugin to each feature module and to the app module that puts them together:
 
 ```kotlin
+// feature/home/build.gradle.kts, feature/settings/build.gradle.kts, …
+plugins {
+    alias(libs.plugins.ksp)
+    id("app.mashlab.autopreview") version "0.1.0"
+}
+
+// app/build.gradle.kts
+plugins {
+    id("app.mashlab.autopreview") version "0.1.0" // add KSP only if :app has previews of its own
+}
+dependencies {
+    implementation(project(":feature:home"))
+    implementation(project(":feature:settings"))
+}
+```
+
+Screens can link to screens in other modules by name, so the graph connects across them:
+
+```kotlin
+// in :feature:home
+@AutoPreview(samplesFrom = HomeSamples::class, navigatesTo = ["SettingsScreen"])
+
+// in :feature:settings
+@AutoPreview(samplesFrom = SettingsSamples::class)
+```
+
+Then pick how much of the app you want to see:
+
+| You want | Run |
+|---|---|
+| One feature | `./gradlew :feature:home:autoPreview` |
+| A few features together | `./gradlew :app:autoPreview --modules=:feature:home,:feature:settings` |
+| The whole app | `./gradlew :app:autoPreview` |
+
+```mermaid
+flowchart LR
+    subgraph whole["./gradlew :app:autoPreview"]
+        App[":app"]
+        subgraph few["--modules=:feature:home,:feature:settings"]
+            Home[":feature:home"]
+            Settings[":feature:settings"]
+        end
+        Profile[":feature:profile"]
+    end
+    App --> Home & Settings & Profile
+```
+
+A few things to know:
+
+- **Run it on the app module**, the one that depends on all your features. With `--modules`, write the module path in front (`:app:autoPreview`); a bare `./gradlew autoPreview` runs in every module and fails in the ones that don't depend on what you listed.
+- Modules you leave out of `--modules` aren't rendered at all, so a narrow report is also a fast one.
+- Screen names must be unique across the modules in one report.
+- Each feature may mark its own `entryPoint` for its own report. In a merged report, the app module's entry point wins.
+
+## Kotlin Multiplatform
+
+States and samples can live in `commonMain`. The `@AutoPreview` function goes in `androidMain`.
+
+**A KMP library or feature module** uses AGP's KMP library plugin and the same two lines as above:
+
+```kotlin
+// shared/build.gradle.kts or feature/settings/build.gradle.kts
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
@@ -105,69 +161,60 @@ kotlin {
         namespace = "com.example.feature.settings"
         compileSdk = 36
         minSdk = 28
-        androidResources { enable = true } // Compose Multiplatform 1.8+ resources
+        androidResources { enable = true } // needed for Compose Multiplatform resources
     }
     iosArm64()
     iosSimulatorArm64()
 }
 ```
 
-The plugin turns on host tests with Android resources (`withHostTest { isIncludeAndroidResources = true }`) unless you already call `withHostTest {}`, and renders them in `androidHostTest`. Compose Multiplatform resources (`Res.string`, `Res.drawable`) resolve in the report. From Compose Multiplatform 1.8 they ship as Android assets, so the module needs `androidResources { enable = true }`; without it they are missing from the AAR as well as the report. See [`sample-kmp-library`](sample-kmp-library).
+`Res.string` and `Res.drawable` show up in the report as they do in the app.
 
-## How it works
+**A KMP app** has no `:app` module. The Android app module is called something else depending on which wizard created the project, and that's the module you run:
 
-```mermaid
-flowchart LR
-    A["@AutoPreview function"] --> K[KSP processor]
-    K --> P["…SamplesProvider<br/>(your samples, in order)"]
-    K --> M["@…AutoPreviews<br/>(device × theme multi-preview)"]
-    K --> R[Render registry]
-    P & M --> S["Android Studio<br/>layoutlib · first sample"]
-    R --> G["Gradle autoPreview<br/>Robolectric · all samples"]
-    G --> H["PNGs + HTML report"]
+| Project | Android app module | Whole app |
+|---|---|---|
+| Created on AGP 8 | `:composeApp` | `./gradlew :composeApp:autoPreview` |
+| Created on AGP 9 | `:androidApp` | `./gradlew :androidApp:autoPreview` |
+
+```kotlin
+// androidApp/build.gradle.kts (or composeApp)
+plugins {
+    id("app.mashlab.autopreview") version "0.1.0" // add KSP only if this module has previews of its own
+}
 ```
 
-1. **Codegen.** For each `@AutoPreview` function, KSP generates a `PreviewParameterProvider` with your samples and a multi-preview annotation holding the `device × theme` grid.
-2. **In the IDE.** Studio sees an ordinary multi-preview and renders it with layoutlib. It shows the first sample only, which keeps the cell count low.
-3. **In Gradle.** The plugin generates a render test that runs every function against every sample under Robolectric and writes a PNG per cell. Regular unit test runs skip it.
-4. **The report.** A static HTML page draws the screens as a graph from your `entryPoint` along `navigatesTo` edges. It also has a list view and a page per screen with a full-screen viewer (`←`/`→` step, `T` toggles theme, `[`/`]` switch screen, `/` searches).
-
-## How it compares
-
-[Paparazzi](https://github.com/cashapp/paparazzi), [Roborazzi](https://github.com/takahirom/roborazzi) and [Compose Preview Screenshot Testing](https://developer.android.com/studio/preview/compose-screenshot-testing) are screenshot *testing* tools: they record golden images and fail the build when pixels change. You still write each preview or test yourself.
-
-Compose Auto Preview solves the step before that: it *generates* the previews from one annotation and shows the whole app in one report. It doesn't diff images, so it complements those tools rather than replacing them.
-
-| | Compose Auto Preview | Screenshot testing tools |
-|---|---|---|
-| Writes the device × theme × state matrix for you | ✅ | — |
-| Keeps the Studio preview pane light | ✅ first state only | — |
-| Browsable app graph from navigation edges | ✅ | — |
-| Golden images and diff checks on CI | — | ✅ |
-
-## Built with
-
-| Tool | Role |
-|---|---|
-| [KSP](https://kotlinlang.org/docs/ksp-overview.html) | Generates the sample providers, multi-preview annotations and render registry |
-| [Compose Preview](https://developer.android.com/develop/ui/compose/tooling/previews) | `@Preview`, multi-preview annotations and `PreviewParameterProvider` drive the IDE pane |
-| [Robolectric](https://robolectric.org/) | Renders Compose off-device, in the JVM, for the full matrix |
-| Gradle plugin | Wires dependencies, generates the render test, builds the report |
-| Vanilla HTML/CSS/JS | The report: no server, no build step, opens from disk |
+One module, a few modules and `--modules` all work the same as in [Several modules](#several-modules). See [`sample-kmp-library`](sample-kmp-library) for a working example.
 
 ## Navigation graph
 
-Mark the start screen with `entryPoint` and declare edges with `navigatesTo`. A screen id is the function name without `Preview`:
+The report draws your screens as a graph. Mark the first screen with `entryPoint` and say where each screen leads with `navigatesTo`. A screen's name is its preview function without `Preview`, so `SettingsScreenPreview` is `"SettingsScreen"`:
 
 ```kotlin
-@AutoPreview(samplesFrom = OnboardingSamples::class, entryPoint = true, navigatesTo = ["SettingsScreen"])
-@AutoPreview(samplesFrom = SettingsSamples::class, navigatesTo = ["ConfirmDialog"])
+@AutoPreview(samplesFrom = WelcomeSamples::class, entryPoint = true, navigatesTo = ["SignInScreen"])
+@AutoPreview(samplesFrom = SignInSamples::class, navigatesTo = ["TodayScreen"])
 ```
 
-Screens the entry point can't reach are drawn dashed on the outer ring. Unknown ids produce a build warning.
+Screens the entry point can't reach are drawn dashed on the side. A `navigatesTo` that points to a screen the report can't find prints a warning.
+
+### Tabs and flows
+
+Screens that belong together, such as the tabs of a bottom bar, share a `group`:
+
+```kotlin
+@AutoPreview(samplesFrom = TodaySamples::class, group = "Bottom navigation")
+@AutoPreview(samplesFrom = InsightsSamples::class, group = "Bottom navigation")
+@AutoPreview(samplesFrom = ProfileSamples::class, group = "Bottom navigation")
+```
+
+The report puts them side by side in a labelled box, like *Bottom navigation* in the screenshot at the top. Reaching one tab reaches them all, so you don't need `navigatesTo` between tabs. Groups work across modules too.
+
+A preview shows only the composable you give it. If the bottom bar lives in your app's scaffold, it won't be in the image; to see it, wrap the screen in that scaffold inside the preview function.
+
+## More options
 
 <details>
-<summary><b><code>@AutoPreview</code> parameters</b></summary>
+<summary><b>All <code>@AutoPreview</code> parameters</b></summary>
 
 | Parameter         | Type            | Default                     |
 |-------------------|-----------------|-----------------------------|
@@ -179,35 +226,39 @@ Screens the entry point can't reach are drawn dashed on the outer ring. Unknown 
 | `showSystemUi`    | `Boolean`       | `false`                     |
 | `navigatesTo`     | `Array<String>` | `[]`                        |
 | `entryPoint`      | `Boolean`       | `false`                     |
+| `group`           | `String`        | `""` (none)                 |
 
 `Device`: `Phone`, `Tablet`, `Foldable`, `Desktop`, `Tv`, `Wear` (round). `Theme`: `Light`, `Dark`.
 
 </details>
 
 <details>
-<summary><b>Shared config across screens</b></summary>
+<summary><b>Share one setup across screens</b></summary>
 
-Hoist the common devices and themes into a wrapper annotation:
+Put the common devices and themes in your own annotation:
 
 ```kotlin
 @AutoPreview(
-    samplesFrom = Unit::class, // placeholder, overridden at use site
+    samplesFrom = Unit::class, // replaced where you use it
     devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
-    themes  = [Theme.Light, Theme.Dark],
 )
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
-annotation class AppPreview(val samplesFrom: KClass<*>)
+annotation class AppPreview(
+    val samplesFrom: KClass<*>,
+    val navigatesTo: Array<String> = [],
+    val group: String = "",
+)
 ```
 
-Then use `@AppPreview(samplesFrom = SettingsSamples::class)` in place of `@AutoPreview`. Any parameter the wrapper declares overrides the meta-annotation's value.
+Then write `@AppPreview(samplesFrom = SettingsSamples::class)` instead of `@AutoPreview`. Every parameter your annotation declares can be set where you use it.
 
 </details>
 
 <details>
 <summary><b>Dialogs and bottom sheets</b></summary>
 
-`AlertDialog`, `ModalBottomSheet` and similar render in a separate window, so wrap them in `Box(Modifier.fillMaxSize())` to give the underlay a canvas:
+`AlertDialog`, `ModalBottomSheet` and similar open in their own window. Wrap them in a full-size `Box` so there's something behind them:
 
 ```kotlin
 internal fun ConfirmDialogPreview(
@@ -218,31 +269,55 @@ internal fun ConfirmDialogPreview(
 </details>
 
 <details>
-<summary><b>Caveats</b></summary>
+<summary><b>Good to know</b></summary>
 
-- **Report vs Studio fidelity.** Robolectric and layoutlib are close but not always pixel-identical. Infinite animations are frozen at their first frame, and `showSystemUi` isn't drawn in the report.
-- **JDK.** The report renders with your target SDK when unit tests run on JDK 21 (Studio's bundled JBR works). Older JDKs fall back to SDK 34.
-- **Locale** is a single value. Changing it is a source edit.
-- **Per-module report.** `navigatesTo` edges across modules aren't drawn yet.
-- **Many screens in one file?** *Settings › Editor › UI Tools › Preview Settings › View Mode: Focus* renders one preview at a time.
+- **The report and Studio can differ slightly.** They use different renderers. Endless animations stop at their first frame, and `showSystemUi` isn't drawn in the report.
+- **Use JDK 21** for your unit tests (Android Studio's bundled one works) to render with your target SDK. Older JDKs render with SDK 34.
+- **Skip opening the browser** with `-PautoPreview.open=false`. It never opens on CI.
+- **Many screens in one file?** *Settings › Editor › UI Tools › Preview Settings › View Mode: Focus* shows one preview at a time in Studio.
 
 </details>
 
+## How it works
+
+```mermaid
+flowchart LR
+    A["@AutoPreview function"] --> K[KSP]
+    K --> S["Android Studio<br/>first state"]
+    K --> G["./gradlew autoPreview<br/>every state"]
+    G --> H["Images + HTML report"]
+```
+
+At build time, KSP turns each `@AutoPreview` function into regular Compose previews for Studio. The Gradle plugin renders the same functions with [Robolectric](https://robolectric.org/) for every state, collects the images from each module, and writes a static HTML report you can open from disk. In the report, `←`/`→` step through images, `T` switches theme, `[`/`]` switch screen and `/` searches.
+
+## How it compares
+
+[Paparazzi](https://github.com/cashapp/paparazzi), [Roborazzi](https://github.com/takahirom/roborazzi) and [Compose Preview Screenshot Testing](https://developer.android.com/studio/preview/compose-screenshot-testing) are screenshot *testing* tools: they save reference images and fail the build when pixels change. You still write each preview or test yourself.
+
+Compose Auto Preview does the step before that: it *writes* the previews for you and shows the whole app in one place. It doesn't compare images, so it works alongside those tools.
+
+| | Compose Auto Preview | Screenshot testing tools |
+|---|---|---|
+| Writes the device × theme × state previews for you | ✅ | — |
+| Keeps Studio's preview pane fast | ✅ | — |
+| Map of the app from navigation | ✅ | — |
+| Reference images and diff checks on CI | — | ✅ |
+
 ## Requirements
 
-Kotlin 2.0+ · KSP 2.0+ · Jetpack Compose or Compose Multiplatform 1.7+ · `minSdk` 28 · JVM 11 · builds on JDK 17+
+Kotlin 2.0+ · KSP 2.0+ · Jetpack Compose or Compose Multiplatform 1.7+ · `minSdk` 28 · JDK 17+
 
 | Module type | Minimum AGP |
 |---|---|
-| `com.android.application`, `com.android.library` with Jetpack Compose | 8.0 with `kotlin-android`; AGP 9's built-in Kotlin needs KSP 2.3.6+ |
-| `com.android.application`, `com.android.library` with KMP `androidTarget()` | 8.0; on AGP 9 only with `android.builtInKotlin=false` and `android.newDsl=false`, as AGP requires |
-| `com.android.kotlin.multiplatform.library` (`androidLibrary {}`) | 8.12.1 (earlier versions leave `android.jar` off the host-test runtime classpath, so Robolectric can't start), `compileSdk` 34 |
+| Android app or library with Jetpack Compose | 8.0 with `kotlin-android`; on AGP 9's built-in Kotlin, KSP 2.3.6+ |
+| Android app or library with KMP `androidTarget()` | 8.0; on AGP 9 only with `android.builtInKotlin=false` and `android.newDsl=false` |
+| KMP library (`com.android.kotlin.multiplatform.library`) | 8.12.1, `compileSdk` 34 |
 
-Verified on every AGP minor from 8.0 to 9.4.
+Tested on every AGP version from 8.0 to 9.4.
 
 ## Contributing
 
-Issues and pull requests are welcome on [GitHub](https://github.com/DrunkenDealer/compose-auto-preview/issues). The [`sample`](sample) module is a working habit-tracker app: run `./gradlew :sample:autoPreview` to try it. [`sample-kmp-library`](sample-kmp-library) covers the KMP library plugin: `./gradlew :sample-kmp-library:autoPreview`.
+Issues and pull requests are welcome on [GitHub](https://github.com/DrunkenDealer/compose-auto-preview/issues). Try it on the sample habit tracker with `./gradlew :sample:autoPreview`, or on the KMP library sample with `./gradlew :sample-kmp-library:autoPreview`.
 
 ## License
 

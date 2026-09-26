@@ -114,7 +114,8 @@ class AutoPreviewProcessor(
             )
         }
         // Only with the Gradle plugin is every screen reprocessed on each run (the registry is aggregating),
-        // so cross-screen checks are reliable. The registry is written even when empty: the render test uses it.
+        // so cross-screen checks are reliable. `navigatesTo` may name screens in other modules; the report checks it.
+        // The registry is written even when empty: the render test uses it.
         if (registryPackage == null || registryOnClasspath == true) return
         registryEntries.groupBy { it.id }.filterValues { it.size > 1 }.forEach { (id, entries) ->
             logger.error(
@@ -122,14 +123,6 @@ class AutoPreviewProcessor(
                     it.previewFunction.canonicalName
                 }}",
             )
-        }
-        val ids = registryEntries.mapTo(HashSet()) { it.id }
-        registryEntries.forEach { entry ->
-            (entry.args.navigatesTo - ids).forEach {
-                logger.warn(
-                    "@AutoPreview: ${entry.id} navigatesTo unknown screen \"$it\"",
-                )
-            }
         }
         RenderRegistry.write(codeGenerator, registryPackage, registryEntries)
     }

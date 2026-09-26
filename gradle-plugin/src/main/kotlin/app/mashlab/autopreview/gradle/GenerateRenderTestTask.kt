@@ -93,7 +93,7 @@ class AutoPreviewRenderTest {
 
     @Test
     fun render() {
-        // Skipped in regular unit test runs; only `autoPreviewRender` sets the output dir.
+        // Skipped in regular unit test runs; only `autoPreviewRender` sets the output dir and module.
         val outputPath: String? = System.getProperty("autopreview.outputDir")
         assumeTrue(outputPath != null)
         val outputDir = File(outputPath!!)
@@ -130,7 +130,9 @@ class AutoPreviewRenderTest {
                 json("cells") + ":" + cells.joinToString(",", "[", "]"),
             ).joinToString(",") + "}"
         }
-        File(outputDir, "manifest.json").writeText(screens.joinToString(",", "{\"density\":2,\"screens\":[", "]}"))
+        val module = json(System.getProperty("autopreview.module"))
+        File(outputDir, "manifest.json")
+            .writeText(screens.joinToString(",", "{\"density\":2,\"module\":${'$'}module,\"screens\":[", "]}"))
     }
 
     private fun capture(screen: AutoPreviewScreen, device: AutoPreviewDevice, theme: String, index: Int, file: File) {

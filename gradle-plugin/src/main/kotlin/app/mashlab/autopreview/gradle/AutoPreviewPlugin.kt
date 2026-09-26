@@ -3,21 +3,28 @@ package app.mashlab.autopreview.gradle
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.google.devtools.ksp.gradle.KspExtension
-import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.attributes.Attribute
+import org.gradle.api.attributes.AttributeContainer
+import org.gradle.api.attributes.Usage
 import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.testing.Test
 import org.gradle.process.CommandLineArgumentProvider
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import java.util.concurrent.Callable
 
 private const val GROUP = "autopreview"
 private const val RENDER_TEST = "AutoPreviewRenderTest"
 private const val RENDER_TASK = "autoPreviewRender"
 private const val GENERATE_TEST_TASK = "generateAutoPreviewRenderTest"
+private const val SHOW_TASK = "autoPreview"
+private const val ELEMENTS = "autoPreviewElements"
 private const val KSP_PLUGIN = "com.google.devtools.ksp"
 private const val KMP_PLUGIN = "org.jetbrains.kotlin.multiplatform"
 private const val KOTLIN_ANDROID_PLUGIN = "org.jetbrains.kotlin.android"
@@ -34,6 +41,7 @@ internal val TEST_DEPENDENCIES = listOf(
 )
 
 /** What differs between the Android plugins; [configure] wires everything else the same way. */
+@Suppress("LongParameterList")
 internal class AndroidModule(
     val namespace: Provider<String>,
     val unitTestTask: String,
@@ -42,6 +50,7 @@ internal class AndroidModule(
     val kmpMainSourceSet: String,
     val kmpTestSourceSet: String,
     val kspConfiguration: String,
+    val runtimeClasspath: String,
 )
 
 class AutoPreviewPlugin : Plugin<Project> {
@@ -65,6 +74,7 @@ class AutoPreviewPlugin : Plugin<Project> {
             kmpMainSourceSet = "androidMain",
             kmpTestSourceSet = "androidUnitTest",
             kspConfiguration = "kspAndroid",
+            runtimeClasspath = "debugRuntimeClasspath",
         )
         configure(project, module)
 
@@ -79,7 +89,7 @@ class AutoPreviewPlugin : Plugin<Project> {
             }
         }
         components.onVariants(components.selector().withName("debug")) { variant ->
-            if (!project.pluginManager.hasPlugin(KMP_PLUGIN)) {
+            if (!project.pluginManager.hasPlugin(KMP_PLUGIN) && project.pluginManager.hasPlugin(KSP_PLUGIN)) {
                 // The variant API, unlike `android.sourceSets`, carries the generating task's dependency.
                 // unitTest's replacement, HasUnitTest, doesn't exist before AGP 8.1.
                 @Suppress("DEPRECATION")
@@ -101,18 +111,37 @@ class AutoPreviewPlugin : Plugin<Project> {
         project: Project,
         module: AndroidModule,
     ) {
-        project.pluginManager.withPlugin(KSP_PLUGIN) {
+        // Preview functions are Android-only, so KMP gets the annotations in the Android source set, not commonMain.
+        project.pluginManager.withPlugin(KMP_PLUGIN) {
             project.extensions
-                .getByType(KspExtension::class.java)
-                .arg(RegistryPackageArgument(module.namespace))
+                .getByType(KotlinMultiplatformExtension::class.java)
+                .sourceSets
+                .matching { it.name == module.kmpMainSourceSet }
+                .configureEach { it.dependencies { implementation(ANNOTATIONS) } }
         }
-        project.afterEvaluate {
-            if (!project.pluginManager.hasPlugin(KSP_PLUGIN)) {
-                throw GradleException(
-                    "Compose Auto Preview needs the KSP plugin (`$KSP_PLUGIN`) applied to ${project.path}.",
-                )
-            }
+        val images = project.layout.buildDirectory
+            .dir("intermediates/autopreview/images")
+        val elements = project.configurations.create(ELEMENTS) {
+            it.isCanBeConsumed = true
+            it.isCanBeResolved = false
+            it.attributes.previewImages(project)
         }
+        // Without KSP a module renders nothing of its own, and only merges the modules it depends on (an app module).
+        project.pluginManager.withPlugin(KSP_PLUGIN) {
+            val render = configureRender(project, module, images)
+            elements.outgoing.artifact(images) { it.builtBy(render) }
+        }
+        configureReport(project, module, images)
+    }
+
+    private fun configureRender(
+        project: Project,
+        module: AndroidModule,
+        images: Provider<Directory>,
+    ): TaskProvider<Test> {
+        project.extensions
+            .getByType(KspExtension::class.java)
+            .arg(RegistryPackageArgument(module.namespace))
 
         // Test configurations may be created after this plugin (the KMP library adds them with its host test).
         project.configurations
@@ -138,15 +167,10 @@ class AutoPreviewPlugin : Plugin<Project> {
                     .dir("generated/autopreview/test"),
             )
         }
-        // Preview functions are Android-only, so KMP gets the annotations in the Android source set, not commonMain.
         project.pluginManager.withPlugin(KMP_PLUGIN) {
-            val sourceSets = project.extensions
+            project.extensions
                 .getByType(KotlinMultiplatformExtension::class.java)
                 .sourceSets
-            sourceSets
-                .matching { it.name == module.kmpMainSourceSet }
-                .configureEach { it.dependencies { implementation(ANNOTATIONS) } }
-            sourceSets
                 .matching { it.name == module.kmpTestSourceSet }
                 .configureEach { it.kotlin.srcDir(project.generatedTestSources()) }
             addProcessor(project, module.kspConfiguration)
@@ -171,9 +195,7 @@ class AutoPreviewPlugin : Plugin<Project> {
             it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
         }
 
-        val imagesDir = project.layout.buildDirectory
-            .dir("autopreview/images")
-        val render = project.tasks.register(RENDER_TASK, Test::class.java) { test ->
+        return project.tasks.register(RENDER_TASK, Test::class.java) { test ->
             test.group = GROUP
             test.description = "Renders every @AutoPreview screen × device × theme × sample to PNG."
             val unitTest = project.tasks.getByName(module.unitTestTask) as Test
@@ -184,29 +206,67 @@ class AutoPreviewPlugin : Plugin<Project> {
             test.filter.includeTestsMatching("*.$RENDER_TEST")
             test.maxHeapSize = "2g"
             test.jvmArgumentProviders.addAll(unitTest.jvmArgumentProviders)
-            test.jvmArgumentProviders.add(OutputDirArgument(imagesDir))
+            test.jvmArgumentProviders.add(RenderArguments(project.path, images))
         }
+    }
 
-        val report = project.tasks.register("autoPreviewReport", AutoPreviewReportTask::class.java) {
-            it.group = GROUP
-            it.description = "Builds the HTML app graph from the rendered previews."
-            it.dependsOn(render)
-            it.imagesDir.set(imagesDir)
-            it.reportFile.set(
+    private fun configureReport(
+        project: Project,
+        module: AndroidModule,
+        images: Provider<Directory>,
+    ) {
+        val show = project.tasks.register(SHOW_TASK, ShowReportTask::class.java)
+        val modules = show.flatMap { it.modules }.map(::parseModules)
+        val report = project.tasks.register("autoPreviewReport", AutoPreviewReportTask::class.java) { task ->
+            task.group = GROUP
+            task.description =
+                "Builds the HTML app graph from the rendered previews of this module and the modules it depends on."
+            task.projectPath.set(project.path)
+            task.modules.set(modules)
+            // Every dependency module's rendered images, re-selected off the runtime classpath (so Android and KMP
+            // variant attributes still apply) and skipping modules without the plugin. Resolved as late as the task
+            // graph, after `--modules` is set, so modules filtered out never render.
+            task.renders.from(
+                Callable {
+                    project.configurations
+                        .getByName(module.runtimeClasspath)
+                        .incoming
+                        .artifactView { view ->
+                            view.withVariantReselection()
+                            view.lenient(true)
+                            view.attributes.previewImages(project)
+                            view.componentFilter {
+                                it is ProjectComponentIdentifier && modules.orNull.includes(it.projectPath)
+                            }
+                        }.files
+                },
+                Callable {
+                    if (project.pluginManager.hasPlugin(KSP_PLUGIN) && modules.orNull.includes(project.path)) {
+                        project.files(images).builtBy(RENDER_TASK)
+                    } else {
+                        project.files()
+                    }
+                },
+            )
+            task.reportFile.set(
                 project.layout.buildDirectory
                     .file("autopreview/index.html"),
             )
-            it.assetsDir.set(
+            task.assetsDir.set(
                 project.layout.buildDirectory
                     .dir("autopreview/assets"),
             )
+            task.imagesDir.set(
+                project.layout.buildDirectory
+                    .dir("autopreview/images"),
+            )
         }
 
-        project.tasks.register("autoPreview", ShowReportTask::class.java) {
+        show.configure {
             it.group = GROUP
             it.description =
-                "Renders the full preview matrix, builds an HTML app graph and opens it " +
-                "(-PautoPreview.open=false to skip)."
+                "Renders the full preview matrix of this module and every module it depends on, builds an HTML " +
+                "app graph and opens it (--modules=:a,:b to narrow, -PautoPreview.open=false to skip opening)."
             it.dependsOn(report)
             it.reportFile.set(report.flatMap { task -> task.reportFile })
             // IDE terminals open file:// links in the editor, so the task opens the browser itself; never on CI.
@@ -238,11 +298,34 @@ private fun addProcessor(
 }
 
 // A provider rather than a system property so the absolute path stays out of the task's cache key.
-internal class OutputDirArgument(
+internal class RenderArguments(
+    @get:Input val projectPath: String,
     @get:OutputDirectory val dir: Provider<Directory>,
 ) : CommandLineArgumentProvider {
-    override fun asArguments(): Iterable<String> = listOf("-Dautopreview.outputDir=${dir.get().asFile.absolutePath}")
+    override fun asArguments(): Iterable<String> =
+        listOf(
+            "-Dautopreview.outputDir=${dir.get().asFile.absolutePath}",
+            "-Dautopreview.module=$projectPath",
+        )
 }
+
+/** `--modules` → project paths to include (a leading `:` is optional); without it, every module is included. */
+internal fun parseModules(value: String): Set<String> =
+    value
+        .split(',')
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .mapTo(LinkedHashSet()) { if (it.startsWith(":")) it else ":$it" }
+
+internal fun Set<String>?.includes(path: String) = this == null || path in this
+
+// A custom usage keeps every other variant (jars, AARs, lint) out: an attribute a variant lacks would still match.
+private fun AttributeContainer.previewImages(project: Project) {
+    attribute(Usage.USAGE_ATTRIBUTE, project.objects.named(Usage::class.java, "app.mashlab.autopreview"))
+    attribute(ARTIFACT_ATTRIBUTE, "images")
+}
+
+private val ARTIFACT_ATTRIBUTE = Attribute.of("app.mashlab.autopreview.artifact", String::class.java)
 
 internal class RegistryPackageArgument(
     @get:Input val packageName: Provider<String>,

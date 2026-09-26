@@ -39,7 +39,6 @@ class RenderRegistryTest {
         assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
         assertContains(registry, "id = \"Home\",")
         assertContains(registry, Regex("""navigatesTo = listOf\("Details", "Missing"\),\s*entryPoint = true,"""))
-        assertContains(result.messages, "Home navigatesTo unknown screen \"Missing\"")
     }
 
     @Test

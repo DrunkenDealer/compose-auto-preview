@@ -32,6 +32,7 @@ internal fun configureKmpLibrary(
                 kmpMainSourceSet = "${target.name}Main",
                 kmpTestSourceSet = "${target.name}HostTest",
                 kspConfiguration = "ksp$name",
+                runtimeClasspath = "${target.name}RuntimeClasspath",
             ),
         )
     }

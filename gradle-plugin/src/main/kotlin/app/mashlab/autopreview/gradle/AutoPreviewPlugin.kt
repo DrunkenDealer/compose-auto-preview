@@ -22,8 +22,8 @@ private const val KSP_PLUGIN = "com.google.devtools.ksp"
 private const val KMP_PLUGIN = "org.jetbrains.kotlin.multiplatform"
 private const val KOTLIN_ANDROID_PLUGIN = "org.jetbrains.kotlin.android"
 private const val KMP_LIBRARY_PLUGIN = "com.android.kotlin.multiplatform.library"
-private const val ANNOTATIONS = "app.mashlab:compose-auto-preview-annotations:${Versions.AUTO_PREVIEW}"
-private const val PROCESSOR = "app.mashlab:compose-auto-preview-processor:${Versions.AUTO_PREVIEW}"
+private const val ANNOTATIONS = "app.mashlab.autopreview:annotations:${Versions.AUTO_PREVIEW}"
+private const val PROCESSOR = "app.mashlab.autopreview:processor:${Versions.AUTO_PREVIEW}"
 
 internal val TEST_DEPENDENCIES = listOf(
     "org.robolectric:robolectric:${Versions.ROBOLECTRIC}",

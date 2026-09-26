@@ -31,8 +31,8 @@ dependencies {
 
 mavenPublishing {
     coordinates(
-        groupId = "app.mashlab",
-        artifactId = "compose-auto-preview-processor",
+        groupId = "app.mashlab.autopreview",
+        artifactId = "processor",
         version = libs.versions.autoPreview
             .get(),
     )

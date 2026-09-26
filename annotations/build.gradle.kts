@@ -54,8 +54,8 @@ android {
 
 mavenPublishing {
     coordinates(
-        groupId = "app.mashlab",
-        artifactId = "compose-auto-preview-annotations",
+        groupId = "app.mashlab.autopreview",
+        artifactId = "annotations",
         version = libs.versions.autoPreview
             .get(),
     )

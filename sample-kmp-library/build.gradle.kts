@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
-    id("app.mashlab.compose-auto-preview")
+    id("app.mashlab.autopreview")
 }
 
 kotlin {
@@ -42,7 +42,7 @@ compose.resources {
 // The plugin adds the published annotations and processor; build them from source here instead.
 configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
-        substitute(module("app.mashlab:compose-auto-preview-annotations")).using(project(":annotations"))
-        substitute(module("app.mashlab:compose-auto-preview-processor")).using(project(":processor"))
+        substitute(module("app.mashlab.autopreview:annotations")).using(project(":annotations"))
+        substitute(module("app.mashlab.autopreview:processor")).using(project(":processor"))
     }
 }

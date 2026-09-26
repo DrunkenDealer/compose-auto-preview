@@ -1,6 +1,6 @@
 # Compose Auto Preview
 
-[![Maven Central](https://img.shields.io/maven-central/v/app.mashlab/compose-auto-preview-annotations.svg)](https://central.sonatype.com/artifact/app.mashlab/compose-auto-preview-annotations)
+[![Maven Central](https://img.shields.io/maven-central/v/app.mashlab.autopreview/annotations.svg)](https://central.sonatype.com/artifact/app.mashlab.autopreview/annotations)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose%20%7C%20Compose%20Multiplatform-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -58,7 +58,7 @@ With 5 samples, Studio shows **4** cells and the report holds **20**.
 ```kotlin
 plugins {
     alias(libs.plugins.ksp)
-    id("app.mashlab.compose-auto-preview") version "4.1.0"
+    id("app.mashlab.autopreview") version "0.1.0"
 }
 ```
 
@@ -97,7 +97,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
-    id("app.mashlab.compose-auto-preview") version "4.1.0"
+    id("app.mashlab.autopreview") version "0.1.0"
 }
 
 kotlin {

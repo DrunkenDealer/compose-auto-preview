@@ -72,7 +72,7 @@ kotlin.sourceSets.main { kotlin.srcDir(generateVersions) }
 gradlePlugin {
     plugins {
         create("autoPreview") {
-            id = "app.mashlab.compose-auto-preview"
+            id = "app.mashlab.autopreview"
             implementationClass = "app.mashlab.autopreview.gradle.AutoPreviewPlugin"
         }
     }
@@ -80,8 +80,8 @@ gradlePlugin {
 
 mavenPublishing {
     coordinates(
-        groupId = "app.mashlab",
-        artifactId = "compose-auto-preview-gradle-plugin",
+        groupId = "app.mashlab.autopreview",
+        artifactId = "gradle-plugin",
         version = libs.versions.autoPreview
             .get(),
     )

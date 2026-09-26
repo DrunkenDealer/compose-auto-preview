@@ -42,7 +42,7 @@ The simplest setup: one module, a few screens, one report.
 // app/build.gradle.kts
 plugins {
     alias(libs.plugins.ksp)
-    id("app.mashlab.autopreview") version "0.1.0"
+    id("app.mashlab.autopreview") version "0.2.0"
 }
 ```
 
@@ -88,12 +88,12 @@ When your features live in their own modules, apply the plugin to each feature m
 // feature/home/build.gradle.kts, feature/settings/build.gradle.kts, …
 plugins {
     alias(libs.plugins.ksp)
-    id("app.mashlab.autopreview") version "0.1.0"
+    id("app.mashlab.autopreview") version "0.2.0"
 }
 
 // app/build.gradle.kts
 plugins {
-    id("app.mashlab.autopreview") version "0.1.0" // add KSP only if :app has previews of its own
+    id("app.mashlab.autopreview") version "0.2.0" // add KSP only if :app has previews of its own
 }
 dependencies {
     implementation(project(":feature:home"))
@@ -153,7 +153,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
-    id("app.mashlab.autopreview") version "0.1.0"
+    id("app.mashlab.autopreview") version "0.2.0"
 }
 
 kotlin {
@@ -180,7 +180,7 @@ kotlin {
 ```kotlin
 // androidApp/build.gradle.kts (or composeApp)
 plugins {
-    id("app.mashlab.autopreview") version "0.1.0" // add KSP only if this module has previews of its own
+    id("app.mashlab.autopreview") version "0.2.0" // add KSP only if this module has previews of its own
 }
 ```
 

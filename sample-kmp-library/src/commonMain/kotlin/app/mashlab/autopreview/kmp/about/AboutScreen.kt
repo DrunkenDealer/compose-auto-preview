@@ -28,7 +28,7 @@ data class AboutState(
 )
 
 object AboutSamples {
-    val Release = AboutState(version = "0.1.0")
+    val Release = AboutState(version = "0.2.0")
     val Snapshot = AboutState(version = "4.2.0-SNAPSHOT")
 }
 

@@ -16,4 +16,5 @@ import kotlin.reflect.KClass
 annotation class PreviewBloom(
     val samplesFrom: KClass<*>,
     val navigatesTo: Array<String> = [],
+    val group: String = "",
 )

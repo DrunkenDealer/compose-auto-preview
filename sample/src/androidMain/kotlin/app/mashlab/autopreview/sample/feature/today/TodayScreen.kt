@@ -388,7 +388,8 @@ private fun LoadingContent(expanded: Boolean) {
     samplesFrom = TodaySamples::class,
     devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
     themes = [Theme.Light, Theme.Dark],
-    navigatesTo = ["HabitDetailScreen", "EditHabitScreen", "InsightsScreen", "ProfileScreen"],
+    navigatesTo = ["HabitDetailScreen", "EditHabitScreen"],
+    group = "Bottom navigation",
 )
 @TodayScreenAutoPreviews
 @Composable

@@ -79,6 +79,7 @@ internal object RenderRegistry {
                     "backgroundColor" to LONG,
                     "navigatesTo" to LIST.parameterizedBy(STRING),
                     "entryPoint" to BOOLEAN,
+                    "group" to STRING.copy(nullable = true),
                     "samples" to LIST.parameterizedBy(STRING),
                     "content" to content,
                 ),
@@ -134,6 +135,7 @@ internal object RenderRegistry {
                 }}),\n",
                 *args.navigatesTo.toTypedArray(),
             ).add("entryPoint = %L,\n", args.entryPoint)
+            .add("group = %S,\n", args.group)
             .add("samples = listOf(${entry.samples.joinToString { "%S" }}),\n", *entry.samples.toTypedArray())
             .add("content = { %M(listOf($samples)[it]) },\n", entry.previewFunction, *sampleArgs)
             .unindent()

@@ -30,15 +30,19 @@ class RenderRegistryTest {
     }
 
     @Test
-    fun `registry carries entry point and navigation`() {
+    fun `registry carries entry point, navigation and group`() {
         val (result, registry) = compile(
             screen("app", "Home", "entryPoint = true, navigatesTo = [\"Details\", \"Missing\"]"),
-            screen("app", "Details"),
+            screen("app", "Details", "group = \"Tabs\""),
         )
 
         assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
         assertContains(registry, "id = \"Home\",")
-        assertContains(registry, Regex("""navigatesTo = listOf\("Details", "Missing"\),\s*entryPoint = true,"""))
+        assertContains(
+            registry,
+            Regex("""navigatesTo = listOf\("Details", "Missing"\),\s*entryPoint = true,\s*group = null,"""),
+        )
+        assertContains(registry, Regex("""entryPoint = false,\s*group = "Tabs","""))
     }
 
     @Test

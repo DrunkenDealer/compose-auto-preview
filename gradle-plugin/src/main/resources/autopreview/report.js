@@ -25,28 +25,38 @@ const failures = screen => screen.cells.filter(c => c.error).length;
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 // ---- Navigation model -----------------------------------------------------------------------
-const edges = screens.flatMap(s => [...new Set(s.navigatesTo)].filter(t => byId.has(t) && t !== s.id).map(t => ({ source: s.id, target: t })));
+// Screens sharing a `group` (the tabs of a bottom bar, a flow) reach each other without navigatesTo, so links between
+// them are left out and the group is drawn as a box instead.
+const groups = new Map();
+screens.forEach(s => s.group && groups.set(s.group, [...(groups.get(s.group) ?? []), s.id]));
+const siblings = id => (groups.get(byId.get(id).group) ?? []).filter(t => t !== id);
+const sameGroup = (a, b) => !!byId.get(a).group && byId.get(a).group === byId.get(b).group;
+const edges = screens.flatMap(s => [...new Set(s.navigatesTo)].filter(t => byId.has(t) && t !== s.id && !sameGroup(s.id, t))
+  .map(t => ({ source: s.id, target: t })));
 const outgoing = id => edges.filter(e => e.source === id).map(e => e.target);
 const incoming = id => edges.filter(e => e.target === id).map(e => e.source);
 const unknownTargets = screens.flatMap(s => s.navigatesTo.filter(t => !byId.has(t)).map(t => `${s.id} → ${t}`));
 const entry = screens.find(s => s.entryPoint);
 
 // Hops from the entry point (BFS over navigatesTo). Without one, screens nobody navigates to act as roots.
+// A group is entered as a whole: its screens share the hop count of the first one reached.
 const depth = new Map();
 {
-  let roots = entry ? [entry.id] : screens.filter(s => !incoming(s.id).length).map(s => s.id);
+  let roots = entry ? [entry.id] : screens.filter(s => ![s.id, ...siblings(s.id)].some(id => incoming(id).length)).map(s => s.id);
   if (!roots.length && screens.length) roots = [screens[0].id];
-  const queue = [...roots];
-  roots.forEach(id => depth.set(id, 0));
+  const queue = [];
+  const reach = (id, d) => [id, ...siblings(id)].forEach(t => { if (!depth.has(t)) { depth.set(t, d); queue.push(t); } });
+  roots.forEach(id => reach(id, 0));
   while (queue.length) {
     const id = queue.shift();
-    for (const t of outgoing(id)) if (!depth.has(t)) { depth.set(t, depth.get(id) + 1); queue.push(t); }
+    for (const t of outgoing(id)) if (!depth.has(t)) reach(t, depth.get(id) + 1);
   }
 }
 const maxDepth = Math.max(0, ...depth.values());
 const hops = id => depth.has(id) ? depth.get(id) : maxDepth + 1;
 const isUnreachable = id => !depth.has(id);
-const ordered = [...screens].sort((a, b) => hops(a.id) - hops(b.id) || a.id.localeCompare(b.id));
+const ordered = [...screens].sort((a, b) => hops(a.id) - hops(b.id) || (a.group ?? "").localeCompare(b.group ?? "")
+  || a.id.localeCompare(b.id));
 
 function thumbnail(screen) {
   const ok = screen.cells.filter(c => !c.error);
@@ -100,6 +110,7 @@ function notices() {
 const graph = (() => {
   const viewport = $("viewport"), world = $("world"), svg = $("edges");
   const COL_GAP = 160, ROW_GAP = 40, WAYPOINT_H = 12, FLAT_BULGE = 56, LABEL_HEIGHT = 32, TAG_HEIGHT = 34;
+  const GROUP_PAD = 20, GROUP_LABEL = 30;
   const cam = { x: 0, y: 0, k: 1 };
   let cameraTouched = false, gesture = null;
 
@@ -112,7 +123,7 @@ const graph = (() => {
     if (w > 240) { w = 240; h = w / ratio; }
     const tag = screen.id === rootId ? TAG_HEIGHT : 0, full = h + LABEL_HEIGHT + tag;
     // off: from the box centre to the thumbnail centre, where links attach.
-    return { id: screen.id, screen, rank: hops(screen.id), tw: w, th: h, w: Math.max(w, 80), h: full,
+    return { id: screen.id, screen, group: screen.group, rank: hops(screen.id), tw: w, th: h, w: Math.max(w, 80), h: full,
       off: tag + h / 2 - full / 2, x: 0, y: 0, prev: [], next: [] };
   });
   const nodeById = new Map(nodes.map(n => [n.id, n]));
@@ -157,13 +168,22 @@ const graph = (() => {
     return c;
   }
   const mean = (vs, f) => vs.reduce((a, v) => a + f(v), 0) / vs.length;
+  // Orders a column by pos, keeping each group's screens next to each other at the group's mean position.
+  function cluster(layer, pos) {
+    const members = new Map();
+    layer.forEach(v => v.group && members.set(v.group, [...(members.get(v.group) ?? []), v]));
+    const at = v => v.group ? mean(members.get(v.group), pos) : pos(v);
+    layer.sort((a, b) => at(a) - at(b) || (a.group ?? "").localeCompare(b.group ?? "") || pos(a) - pos(b))
+      .forEach((v, k) => v.order = k);
+  }
   index();
+  layers.forEach(layer => cluster(layer, v => v.order));
   let best = crossings(), bestLayers = layers.map(l => [...l]);
   for (let i = 0; i < 12 && best; i++) {
     const down = i % 2 === 0;
     for (const layer of down ? layers.slice(1) : layers.slice(0, -1).reverse()) {
       for (const v of layer) { const adj = down ? v.prev : v.next; v.bc = adj.length ? mean(adj, w => w.order) : v.order; }
-      layer.sort((a, b) => a.bc - b.bc).forEach((v, k) => v.order = k);
+      cluster(layer, v => v.bc);
     }
     const c = crossings();
     if (c < best) { best = c; bestLayers = layers.map(l => [...l]); }
@@ -178,9 +198,22 @@ const graph = (() => {
     layer.forEach(v => v.x = colX + w / 2);
     colX += w + COL_GAP;
   }
-  const gap = (a, b) => (a.h + b.h) / 2 + (a.waypoint && b.waypoint ? WAYPOINT_H : ROW_GAP);
+  // Leaving or entering a group also clears its box: the padding below it, the padding and label above it.
+  const gap = (a, b) => (a.h + b.h) / 2 + (a.waypoint && b.waypoint ? WAYPOINT_H : ROW_GAP)
+    + (a.group === b.group ? 0 : (a.group ? GROUP_PAD : 0) + (b.group ? GROUP_PAD + GROUP_LABEL : 0));
+  const runs = layer => layer.reduce((rs, v, k) => {
+    if (v.group && layer[k - 1]?.group === v.group) rs.at(-1).push(v); else if (v.group) rs.push([v]);
+    return rs;
+  }, []);
   function settle(layer, want) {
     layer.forEach((v, k) => v.y = want[k] - v.off);
+    // A group stacks as one block around where its screens want to be, so its box stays tight.
+    for (const run of runs(layer)) {
+      const centre = mean(run, v => v.y);
+      run.forEach((v, i) => v.y = i ? run[i - 1].y + gap(run[i - 1], v) : 0);
+      const shift = centre - mean(run, v => v.y);
+      run.forEach(v => v.y += shift);
+    }
     for (let k = 1; k < layer.length; k++) layer[k].y = Math.max(layer[k].y, layer[k - 1].y + gap(layer[k - 1], layer[k]));
     const shift = mean(layer, v => want[v.order] - anchor(v));
     layer.forEach(v => v.y += shift);
@@ -197,7 +230,7 @@ const graph = (() => {
   for (const n of nodes) { n.lx = n.x; n.ly = n.y; }
 
   // Dragged positions survive reloads while the report shows the same screens and links.
-  const layoutKey = JSON.stringify([nodes.map(n => n.id), edges.map(e => [e.source, e.target])]);
+  const layoutKey = JSON.stringify([nodes.map(n => [n.id, n.group]), edges.map(e => [e.source, e.target])]);
   const loadPositions = () => { try { const s = JSON.parse(store.get("positions")); return s?.key === layoutKey ? s.pos : {}; } catch { return {}; } };
   const savePositions = pos => store.set("positions", JSON.stringify({ key: layoutKey, pos }));
   for (const [id, [x, y]] of Object.entries(loadPositions())) { const n = nodeById.get(id); if (n) { n.x = x; n.y = y; } }
@@ -249,10 +282,24 @@ const graph = (() => {
     l.g.append(l.casing, l.path);
     svg.append(l.g);
   }
+  // Group boxes sit under the links and screens, and follow their screens when dragged.
+  const boxes = [...groups].map(([name, ids]) => {
+    const label = el("span", { class: "group-label" }, name);
+    const box = { nodes: ids.map(id => nodeById.get(id)), label, el: el("div", { class: "group", "aria-hidden": "true" }, label) };
+    world.prepend(box.el);
+    return box;
+  });
+  // Wide enough for its label, centred on its screens.
+  function boxBounds(box) {
+    const x0 = Math.min(...box.nodes.map(n => n.x - n.w / 2)), x1 = Math.max(...box.nodes.map(n => n.x + n.w / 2));
+    const half = Math.max((x1 - x0) / 2 + GROUP_PAD, box.label.offsetWidth / 2 + GROUP_PAD), c = (x0 + x1) / 2;
+    return { x0: c - half, x1: c + half, y0: Math.min(...box.nodes.map(n => n.y - n.h / 2)) - GROUP_PAD - GROUP_LABEL,
+      y1: Math.max(...box.nodes.map(n => n.y + n.h / 2)) + GROUP_PAD };
+  }
   for (const n of nodes) {
     const failed = failures(n.screen);
     const unreachable = rootId && isUnreachable(n.id);
-    const label = [n.id, n.id === rootId && "entry point", unreachable && "unreachable from entry point",
+    const label = [n.id, n.group && `in ${n.group}`, n.id === rootId && "entry point", unreachable && "unreachable from entry point",
       `${outgoing(n.id).length} outgoing`, `${incoming(n.id).length} incoming`, failed && `${failed} failed`].filter(Boolean).join(", ");
     n.el = el("button", {
       type: "button", class: "node" + (n.id === rootId ? " entry" : "") + (unreachable ? " unreachable" : ""),
@@ -274,6 +321,10 @@ const graph = (() => {
 
   function draw() {
     for (const n of nodes) n.el.style.transform = `translate(${n.x - n.w / 2}px,${n.y - n.h / 2}px)`;
+    for (const box of boxes) {
+      const b = boxBounds(box);
+      Object.assign(box.el.style, { transform: `translate(${b.x0}px,${b.y0}px)`, width: `${b.x1 - b.x0}px`, height: `${b.y1 - b.y0}px` });
+    }
     attach();
     for (const l of links) { const d = edgePath(l); l.casing.setAttribute("d", d); l.path.setAttribute("d", d); }
   }
@@ -307,6 +358,9 @@ const graph = (() => {
     if (!W || !H || !nodes.length) return;
     let minX = Math.min(...nodes.map(n => n.x - n.w / 2)), maxX = Math.max(...nodes.map(n => n.x + n.w / 2));
     let minY = Math.min(...nodes.map(n => n.y - n.h / 2)), maxY = Math.max(...nodes.map(n => n.y + n.h / 2));
+    for (const b of boxes.map(boxBounds)) {
+      minX = Math.min(minX, b.x0); maxX = Math.max(maxX, b.x1); minY = Math.min(minY, b.y0); maxY = Math.max(maxY, b.y1);
+    }
     const b = svg.getBBox();
     if (b.width || b.height) {
       minX = Math.min(minX, b.x); maxX = Math.max(maxX, b.x + b.width);
@@ -324,7 +378,7 @@ const graph = (() => {
   let highlighted = null;
   function highlight(id) {
     viewport.classList.toggle("focus", !!id);
-    const near = id ? new Set([id, ...outgoing(id), ...incoming(id)]) : new Set();
+    const near = id ? new Set([id, ...outgoing(id), ...incoming(id), ...siblings(id)]) : new Set();
     nodes.forEach(n => n.el.classList.toggle("hot", near.has(n.id)));
     for (const l of links) {
       const out = !!id && (l.source === id || l.both && l.target === id), into = !!id && !out && l.target === id;
@@ -547,6 +601,7 @@ function renderScreen(screen, deviceName) {
       el("div", {},
         el("div", { class: "title" }, el("h1", {}, screen.id),
           screen.id === entry?.id ? el("span", { class: "badge entry" }, "Entry point") : "",
+          screen.group ? el("span", { class: "badge" }, screen.group) : "",
           entry && isUnreachable(screen.id) ? el("span", { class: "badge" }, "Unreachable") : "",
           failed ? el("span", { class: "badge bad" }, `${failed} failed`) : ""),
         el("p", { class: "meta" }, [plural(screen.samples.length, "state"), screen.themes.join(" & "),
@@ -559,7 +614,8 @@ function renderScreen(screen, deviceName) {
         el("div", { class: "chips" }, from.length ? from.map(chip)
           : el("span", { class: "none" }, screen.id === entry?.id ? "App start" : "No screen navigates here"))),
       el("section", {}, el("h2", {}, "Navigates to"),
-        el("div", { class: "chips" }, to.length ? to.map(chip) : el("span", { class: "none" }, "Nothing yet — add navigatesTo")))),
+        el("div", { class: "chips" }, to.length ? to.map(chip) : el("span", { class: "none" }, "Nothing yet — add navigatesTo"))),
+      siblings(screen.id).length ? el("section", {}, el("h2", {}, screen.group), el("div", { class: "chips" }, siblings(screen.id).map(chip))) : ""),
     el("div", { class: "toolbar" }, tablist, el("div", { class: "seg", role: "group", "aria-label": "Image size" }, fitBtn, actualBtn)),
     panel,
   );
@@ -624,12 +680,13 @@ function renderList() {
   page.replaceChildren(
     el("div", { class: "list-head" }, el("h1", {}, "Screens"), ...notices()),
     el("div", { class: "table-wrap" }, el("table", {},
-      el("thead", {}, el("tr", {}, ["Screen", "Hops", "Reached from", "Navigates to", "States", "Devices", "Status"]
+      el("thead", {}, el("tr", {}, ["Screen", "Group", "Hops", "Reached from", "Navigates to", "States", "Devices", "Status"]
         .map(h => el("th", { scope: "col" }, h)))),
       el("tbody", {}, ordered.map(s => {
         const failed = failures(s);
         return el("tr", {},
           el("th", { scope: "row" }, el("a", { class: "screen-cell", href: screenUrl(s.id) }, thumbImg(s, { loading: "lazy" }), s.id)),
+          el("td", {}, s.group ?? el("span", { class: "none" }, "—")),
           el("td", { class: "num" }, s.id === entry?.id ? el("span", { class: "badge entry" }, "Entry")
             : entry && isUnreachable(s.id) ? el("span", { class: "badge" }, "Unreachable") : depth.has(s.id) ? depth.get(s.id) : "—"),
           el("td", {}, links(incoming(s.id))),

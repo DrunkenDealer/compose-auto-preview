@@ -8,6 +8,9 @@ import kotlin.reflect.KClass
  * live in another module; the edge shows in any report that includes both.
  * @param entryPoint marks the app's start screen; the report graph is laid out from it. At most one per module; when a
  * report merges several modules, the one in the module it runs on wins.
+ * @param group puts the screen in a named group, such as `"Bottom navigation"` for the tabs of a bottom bar or
+ * `"Onboarding"` for a flow. The report draws a group as one column in a labelled box, with its screens reachable from
+ * each other, so tabs need no `navigatesTo` between them. Works across modules.
  */
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.ANNOTATION_CLASS)
 @Retention(AnnotationRetention.BINARY)
@@ -21,4 +24,5 @@ annotation class AutoPreview(
     val showSystemUi: Boolean = false,
     val navigatesTo: Array<String> = [],
     val entryPoint: Boolean = false,
+    val group: String = "",
 )

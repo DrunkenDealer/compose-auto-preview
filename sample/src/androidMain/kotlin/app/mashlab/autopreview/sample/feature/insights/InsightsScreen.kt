@@ -272,7 +272,7 @@ private fun Loading() {
     samplesFrom = InsightsSamples::class,
     devices = [Device.Phone, Device.Tablet, Device.Foldable],
     themes = [Theme.Light, Theme.Dark],
-    navigatesTo = ["TodayScreen", "ProfileScreen"],
+    group = "Bottom navigation",
 )
 @InsightsScreenAutoPreviews
 @Composable

@@ -256,7 +256,7 @@ private fun SettingRow(
     }
 }
 
-@PreviewBloom(samplesFrom = ProfileSamples::class, navigatesTo = ["PremiumScreen", "WelcomeScreen", "TodayScreen"])
+@PreviewBloom(samplesFrom = ProfileSamples::class, navigatesTo = ["PremiumScreen", "WelcomeScreen"], group = "Bottom navigation")
 @ProfileScreenAutoPreviews
 @Composable
 internal fun ProfileScreenPreview(

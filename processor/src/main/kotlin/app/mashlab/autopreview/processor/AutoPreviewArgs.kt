@@ -14,6 +14,7 @@ internal data class AutoPreviewArgs(
     val showSystemUi: Boolean,
     val navigatesTo: List<String>,
     val entryPoint: Boolean,
+    val group: String?,
 ) {
     companion object {
         fun from(annotation: KSAnnotation): AutoPreviewArgs = fromArgs(annotation.argsMap())
@@ -34,6 +35,7 @@ internal data class AutoPreviewArgs(
                 showSystemUi = (args["showSystemUi"] as? Boolean) ?: false,
                 navigatesTo = (args["navigatesTo"] as? List<*>)?.filterIsInstance<String>().orEmpty(),
                 entryPoint = (args["entryPoint"] as? Boolean) ?: false,
+                group = (args["group"] as? String)?.takeIf(String::isNotBlank),
             )
     }
 }

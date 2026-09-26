@@ -121,6 +121,7 @@ class AutoPreviewRenderTest {
                 json("id") + ":" + json(screen.id),
                 json("navigatesTo") + ":" + screen.navigatesTo.joinToString(",", "[", "]") { json(it) },
                 json("entryPoint") + ":" + screen.entryPoint,
+                json("group") + ":" + json(screen.group),
                 json("devices") + ":" + screen.devices.joinToString(",", "[", "]") {
                     "{" + json("name") + ":" + json(it.name) + "," + json("widthDp") + ":" + it.widthDp + "," +
                         json("heightDp") + ":" + it.heightDp + "," + json("round") + ":" + it.isRound + "}"

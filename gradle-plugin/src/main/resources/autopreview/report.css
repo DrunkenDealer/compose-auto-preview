@@ -56,11 +56,12 @@ code { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
   cursor: pointer; text-decoration: none; font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; }
 .seg > [aria-pressed="true"], .seg > [aria-current="page"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 /* The language picker: a native select styled like the icon buttons, with the globe inside it. */
-.locale-pick { position: relative; display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.locale-pick { position: relative; display: inline-flex; align-items: center; flex: none; }
 .locale-pick[hidden] { display: none; }
 .locale-pick svg { position: absolute; left: 10px; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;
-  pointer-events: none; }
-.locale-pick select { height: 36px; padding: 0 10px 0 32px; border: 1px solid var(--border); border-radius: 10px;
+  stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.locale-pick .chevron { left: auto; right: 10px; color: var(--muted); }
+.locale-pick select { appearance: none; height: 36px; padding: 0 34px; border: 1px solid var(--border); border-radius: 10px;
   background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
 .locale-pick select:hover { border-color: var(--accent); }
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

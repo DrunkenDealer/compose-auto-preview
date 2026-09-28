@@ -101,9 +101,17 @@ function framedThumb(screen) {
   });
 
   $("locale-pick").hidden = locales.length < 2;
-  $("locale").append(...locales.map(l => el("option", { value: l }, l)));
+  $("locale").append(...locales.map(l => el("option", { value: l }, languageName(l))));
   $("locale").value = locale;
   $("locale").addEventListener("change", e => setLocale(e.target.value));
+}
+// A resource qualifier's language in that language: "de" → "Deutsch", "pt-rBR" → "português (Brasil)".
+function languageName(qualifier) {
+  const tag = qualifier.startsWith("b+") ? qualifier.slice(2).replaceAll("+", "-") : qualifier.replace("-r", "-");
+  try {
+    const name = new Intl.DisplayNames([tag], { type: "language" }).of(tag);
+    return name.charAt(0).toLocaleUpperCase(tag) + name.slice(1);
+  } catch { return qualifier; }
 }
 function setLocale(next) {
   locale = next;
@@ -618,7 +626,7 @@ function renderScreen(screen, deviceName) {
     panel.replaceChildren(...screen.samples.map(sample => el("section", { class: "state" },
       el("h2", {}, sample),
       el("div", { class: "shots" + (landscape ? " landscape" : "") }, (compare
-        ? screen.locales.map(l => ({ l, theme: compareTheme, caption: [swatch(compareTheme), l] }))
+        ? screen.locales.map(l => ({ l, theme: compareTheme, caption: [swatch(compareTheme), languageName(l)] }))
         : screen.themes.map(theme => ({ l: localeOf(screen), theme, caption: [swatch(theme), theme] }))
       ).map(({ l, theme, caption: label }) => {
         const cell = screen.cells.find(c => c.locale === l && c.device === d.name && c.theme === theme && c.sample === sample);
@@ -651,7 +659,7 @@ function renderScreen(screen, deviceName) {
           entry && isUnreachable(screen.id) ? el("span", { class: "badge" }, "Unreachable") : "",
           failed ? el("span", { class: "badge bad" }, `${failed} failed`) : ""),
         el("p", { class: "meta" }, [plural(screen.samples.length, "state"), screen.themes.join(" & "),
-          multilingual ? plural(screen.locales.length, "language") : screen.locales[0],
+          multilingual ? plural(screen.locales.length, "language") : languageName(screen.locales[0]),
           plural(screen.devices.length, "device"), entry && depth.has(screen.id) ? plural(depth.get(screen.id), "hop") + " from start" : null]
           .filter(Boolean).join(" · "))),
       el("nav", { class: "pager", "aria-label": "Screens" },
@@ -689,7 +697,7 @@ function showLightboxItem() {
   img.height = device.heightDp * DENSITY;
   img.className = device.round ? "round" : "";
   $("lb-title").textContent = `${screen.id} › ${cell.sample}`;
-  $("lb-sub").textContent = `${cell.theme} · ${cell.locale} · ${device.name} · ${device.widthDp}×${device.heightDp} dp`;
+  $("lb-sub").textContent = `${cell.theme} · ${languageName(cell.locale)} · ${device.name} · ${device.widthDp}×${device.heightDp} dp`;
   $("lb-count").textContent = `${lightbox.index + 1} / ${lightbox.items.length}`;
   $("lb-open").href = imageUrl(cell);
 }

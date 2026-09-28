@@ -1,7 +1,17 @@
-// Device bezels drawn from geometry, ported from Vitrine's frames.js. Cameras sit in the bezel, never over the screen,
-// so they hide no rendered UI (the previews have no status bar to keep it clear). Geometry is authored with the screen's short
-// side at 1080 units so the hairlines, rails and cameras keep Vitrine's proportions at any device size.
-// Graphite rather than Vitrine's black: black dissolves into the report's dark theme, graphite reads on both.
+// Phone, tablet, TV and watch wear Android Studio's device art (AOSP device-art-resources, Apache 2.0): the bezel with
+// the screen's corners and punch-hole camera merged into one overlay. Sizes are in the art's pixels, and each screen
+// matches its device's dp size.
+const DEVICE_ART = {
+  Phone: { src: "pixel_7_pro", width: 1547, height: 3272, screen: [48, 66, 1440, 3120] },
+  Tablet: { src: "pixel_tablet", width: 2798, height: 1837, screen: [119, 117, 2560, 1600] },
+  Tv: { src: "tv_1080p", width: 2090, height: 1255, screen: [85, 59, 1920, 1080] },
+  Wear: { src: "wearos_small_round", width: 456, height: 456, screen: [36, 36, 384, 384], radius: 192 },
+};
+
+// Foldable and desktop have no art of their size, so their bezels are drawn from geometry, ported from Vitrine's
+// frames.js. Geometry is authored with the screen's short side at 1080 units so the hairlines, rails and cameras keep
+// Vitrine's proportions at any device size. Graphite rather than Vitrine's black: black dissolves into the report's dark
+// theme, graphite reads on both.
 const FRAME_TINT = { edge: "#6b6f78", core: "#3c3f46", rim: "#a3a8b2" };
 
 const fr = v => Math.round(v * 100) / 100;
@@ -38,24 +48,9 @@ const railButtons = (g, turn, specs, fill) => specs.map(({ side, from, to }) => 
   return nub(g, edgeFor(g, turn, side), a, b, fill);
 }).join("");
 
-function bezelMid(g, edge) {
-  const { c, depth: d } = g, mid = { x: c.x + c.width / 2, y: c.y + c.height / 2 };
-  if (edge === "left") return { ...mid, x: (d + c.x) / 2, band: c.x - d };
-  if (edge === "right") return { ...mid, x: (c.x + c.width + g.W - d) / 2, band: g.W - d - c.x - c.width };
-  if (edge === "top") return { ...mid, y: (d + c.y) / 2, band: c.y - d };
-  return { ...mid, y: (c.y + c.height + g.H - d) / 2, band: g.H - d - c.y - c.height };
-}
-const bezelCamera = side => (g, turn, t) => {
-  const { x, y, band } = bezelMid(g, edgeFor(g, turn, side));
-  return dot(x, y, band * 0.3, `fill="#08080a" stroke="${t.rim}" stroke-width="${fr(band * 0.08)}"`);
-};
 
 const PIXEL_RAILS = [{ side: "right", from: 0.19, to: 0.258 }, { side: "right", from: 0.282, to: 0.4 }];
-const TABLET_RAILS = [{ side: "left", from: 0.075, to: 0.145 }, { side: "top", from: 0.07, to: 0.2 }];
 
-const slab = (turn, rails, furniture) => (g, t) => ({
-  body: inset(g, g.depth), under: railButtons(g, turn, rails, t.edge), over: furniture ? furniture(g, turn, t) : "",
-});
 
 // A book-style foldable, open: the hinge spine standing proud at the top and bottom edges, a gap splitting the bezel
 // into two halves, a faint crease down the screen and the inner camera in the right half's bezel.
@@ -88,45 +83,19 @@ function stand(g, t) {
   };
 }
 
-// A round case with lugs running into strap stubs above and below, and the crown on the right.
-function watch(g, t) {
-  const r = (g.W - g.c.width * 0.14) / 2, cx = g.W / 2, cy = g.H / 2, strapW = g.c.width * 0.54;
-  const crownW = g.W / 2 - r, crownH = g.c.width * 0.2;
-  return {
-    body: { x: cx - r, y: cy - r, w: r * 2, h: r * 2, r },
-    under: rrect((g.W - strapW) / 2, 0, strapW, g.H, strapW * 0.16, `fill="${t.core}" stroke="${t.rim}" stroke-width="3"`) +
-      rrect(cx + r - crownW, cy - crownH / 2, crownW * 2, crownH, crownW * 0.5, `fill="${t.edge}" stroke="${t.rim}" stroke-width="3"`),
-    over: "",
-  };
-}
 
-const FRAME_STYLES = {
-  pixel: slab("ccw", PIXEL_RAILS, bezelCamera("top")),
-  fold,
-  tablet: slab("cw", TABLET_RAILS, bezelCamera("left")),
-  stand,
-  watch,
-};
+const FRAME_STYLES = { fold, stand };
 
 // Per device: style, and bezel, corner radii and stand height as fractions of the screen's short side.
 const FRAME_SPECS = {
-  Phone: { style: "pixel", margin: 0.039, outer: 0.128, screen: 0.089 },
   Foldable: { style: "fold", margin: 0.05, outer: 0.07, screen: 0.035 },
-  Tablet: { style: "tablet", margin: 0.039, outer: 0.068, screen: 0.03 },
   Desktop: { style: "stand", margin: 0.03, outer: 0.03, screen: 0.012, stand: 0.2 },
-  Tv: { style: "stand", margin: 0.037, outer: 0.037, screen: 0.019, stand: 0.13 },
-  Wear: { style: "watch" },
 };
 
 function frameMeta(device, bezel) {
-  const spec = FRAME_SPECS[device.name] || (device.round ? FRAME_SPECS.Wear : FRAME_SPECS.Phone);
+  const spec = FRAME_SPECS[device.name] || FRAME_SPECS.Desktop;
   const k = 1080 / Math.min(device.widthDp, device.heightDp);
   const w = device.widthDp * k, h = device.heightDp * k;
-  if (spec.style === "watch") {
-    const r = w / 2 * (1 + 0.16 * bezel), W = r * 2 + w * 0.14, H = Math.max(h * 1.5, r * 2 + h * 0.2);
-    return { style: "watch", frameWidth: W, frameHeight: H, outerRadius: 0,
-      cutout: { x: (W - w) / 2, y: (H - h) / 2, width: w, height: h, borderRadius: w / 2 } };
-  }
   const m = spec.margin * bezel * 1080;
   return { style: spec.style, frameWidth: w + m * 2, frameHeight: h + m * 2 + (spec.stand || 0) * 1080,
     outerRadius: (spec.screen + (spec.outer - spec.screen) * bezel) * 1080,
@@ -154,16 +123,24 @@ function frameSvg(meta, t = FRAME_TINT) {
 </svg>`;
 }
 
-// Frame box in dp, and where the screen sits in it (fractions), cached per device. `bezel` thickens the bezel for
+// Frame box in dp, and where the screen sits in it (fractions), cached per device. `bezel` thickens a drawn bezel for
 // thumbnails, where a true-to-life one is a hairline.
 const frames = new Map();
+function artFrame(art) {
+  const [x, y, width, height] = art.screen;
+  return { W: art.width, H: art.height, c: { x, y, width, height, borderRadius: art.radius ?? 0 }, url: `assets/frames/${art.src}.webp` };
+}
+function drawnFrame(device, bezel) {
+  const meta = frameMeta(device, bezel);
+  return { W: meta.frameWidth, H: meta.frameHeight, c: meta.cutout, url: `data:image/svg+xml,${encodeURIComponent(frameSvg(meta))}` };
+}
 function deviceFrame(device, bezel = 1) {
-  const key = device.name + bezel;
+  const art = DEVICE_ART[device.name] || (device.round ? DEVICE_ART.Wear : null);
+  const key = art ? device.name : device.name + bezel;
   if (!frames.has(key)) {
-    const meta = frameMeta(device, bezel), { frameWidth: W, frameHeight: H, cutout: c } = meta, k = device.widthDp / c.width;
+    const { W, H, c, url } = art ? artFrame(art) : drawnFrame(device, bezel), k = device.widthDp / c.width;
     frames.set(key, {
-      width: W * k, height: H * k,
-      url: `data:image/svg+xml,${encodeURIComponent(frameSvg(meta))}`,
+      width: W * k, height: H * k, url,
       style: `left:${c.x / W * 100}%;top:${c.y / H * 100}%;width:${c.width / W * 100}%;height:${c.height / H * 100}%;` +
         `border-radius:${c.borderRadius / c.width * 100}% / ${c.borderRadius / c.height * 100}%`,
     });

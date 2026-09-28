@@ -84,6 +84,8 @@ abstract class AutoPreviewReportTask : DefaultTask() {
                     "const IMAGES = \"${images.relativeTo(report.parentFile).invariantSeparatorsPath}\";\n"
             )
         files.forEach { (name, text) -> assets.resolve(name).writeText(text) }
+        assets.resolve("frames").mkdirs()
+        FRAMES.forEach { name -> assets.resolve("frames/$name").writeBytes(bytes("frames/$name")) }
         // A content hash in each asset URL, so browsers never pair a new page with cached old scripts.
         report.writeText(
             files.entries.fold(resource("index.html")) { html, (name, text) ->
@@ -141,7 +143,18 @@ abstract class AutoPreviewReportTask : DefaultTask() {
     }
 
     private fun resource(name: String) = requireNotNull(javaClass.getResource("/autopreview/$name")).readText()
+
+    private fun bytes(name: String) = requireNotNull(javaClass.getResource("/autopreview/$name")).readBytes()
 }
+
+/** Device art used by `frames.js`, with its license notice. */
+private val FRAMES = listOf(
+    "NOTICE",
+    "pixel_7_pro.webp",
+    "pixel_tablet.webp",
+    "tv_1080p.webp",
+    "wearos_small_round.webp",
+)
 
 @Suppress("UNCHECKED_CAST")
 private class RenderedModule(

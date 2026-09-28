@@ -1,0 +1,23 @@
+<resources>
+    <string name="profile_stat_habits">Звички</string>
+    <string name="profile_stat_best_streak">Рекорд</string>
+    <string name="profile_stat_check_ins">Відмітки</string>
+    <string name="profile_member_since">З нами з %1$s</string>
+    <string name="profile_premium">Premium</string>
+    <string name="profile_upgrade_title">Відкрийте Bloom Premium</string>
+    <string name="profile_upgrade_body">Необмежені звички, аналітика настрою та резервні копії.</string>
+    <string name="profile_upgrade_cta">Спробувати 7 днів безкоштовно</string>
+    <string name="profile_reminders">Щоденні нагадування</string>
+    <string name="profile_on">Увімкнено</string>
+    <string name="profile_off">Вимкнено</string>
+    <string name="profile_weekly_report">Тижневий звіт</string>
+    <string name="profile_weekly_report_schedule">Щонеділі на пошту</string>
+    <string name="profile_appearance">Оформлення</string>
+    <string name="profile_appearance_system">Як у системі</string>
+    <string name="profile_language">Мова</string>
+    <string name="profile_language_current">Українська</string>
+    <string name="profile_export">Експорт даних</string>
+    <string name="profile_export_formats">CSV або JSON</string>
+    <string name="profile_privacy">Конфіденційність</string>
+    <string name="profile_sign_out">Вийти</string>
+</resources>

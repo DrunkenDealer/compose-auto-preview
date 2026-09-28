@@ -16,6 +16,7 @@ import app.mashlab.autopreview.kmp.profile.ProfileState
     samplesFrom = ProfileSamples::class,
     devices = [Device.Phone, Device.Tablet],
     themes = [Theme.Light, Theme.Dark],
+    locales = ["en", "de", "uk"],
     entryPoint = true,
     navigatesTo = ["AboutScreen"],
 )

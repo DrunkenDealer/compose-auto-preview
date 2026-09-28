@@ -1,0 +1,58 @@
+<resources>
+    <string-array name="habit_weekdays">
+        <item>M</item>
+        <item>D</item>
+        <item>M</item>
+        <item>D</item>
+        <item>F</item>
+        <item>S</item>
+        <item>S</item>
+    </string-array>
+    <string name="habit_back">Zurück</string>
+    <string name="habit_edit">Bearbeiten</string>
+    <string name="habit_delete">Löschen</string>
+    <string name="habit_close">Schließen</string>
+    <plurals name="habit_streak_days">
+        <item quantity="one">%d Tag</item>
+        <item quantity="other">%d Tage</item>
+    </plurals>
+    <string name="habit_streak_reset">Serie verloren</string>
+    <string name="habit_streak_current">Aktuelle Serie · Rekord %d</string>
+    <string name="habit_streak_restart">Hake heute ab, um eine neue zu starten</string>
+    <string name="habit_stat_completion">Erfüllt</string>
+    <string name="habit_stat_best_streak">Beste Serie</string>
+    <string name="habit_stat_check_ins">Check-ins</string>
+    <string name="habit_calendar_month">September 2026</string>
+    <string name="habit_reminder">Erinnerung</string>
+    <string name="habit_reminder_off">Aus</string>
+    <string name="habit_done_today">Für heute erledigt</string>
+    <string name="habit_mark_done">Als erledigt markieren</string>
+    <string name="habit_edit_title">Gewohnheit bearbeiten</string>
+    <string name="habit_new_title">Neue Gewohnheit</string>
+    <string name="habit_name_fallback">Deine neue Gewohnheit</string>
+    <string name="habit_name_label">Name</string>
+    <string name="habit_name_placeholder">z. B. Wasser trinken</string>
+    <string name="habit_name_error">Gib deiner Gewohnheit einen Namen</string>
+    <string name="habit_icon">Symbol</string>
+    <string name="habit_colour">Farbe</string>
+    <string name="habit_repeat">Wiederholen</string>
+    <string name="habit_repeat_error">Wähle mindestens einen Tag</string>
+    <string name="habit_no_days">Keine Tage ausgewählt</string>
+    <string name="habit_every_day">Jeden Tag</string>
+    <string name="habit_save_changes">Änderungen speichern</string>
+    <string name="habit_create">Gewohnheit anlegen</string>
+    <string name="habit_delete_habit">Gewohnheit löschen</string>
+    <string name="habit_remind_me">Erinnere mich</string>
+    <string name="habit_remind_at">Um %s</string>
+    <string name="habit_no_reminder">Keine Erinnerung</string>
+    <string name="habit_delete_title">„%s“ löschen?</string>
+    <plurals name="habit_delete_body_streak">
+        <item quantity="one">Du verlierst deine Serie von %d Tag und den gesamten Verlauf. Das lässt sich nicht rückgängig machen.</item>
+        <item quantity="other">Du verlierst deine Serie von %d Tagen und den gesamten Verlauf. Das lässt sich nicht rückgängig machen.</item>
+    </plurals>
+    <string name="habit_delete_body">Der gesamte Verlauf dieser Gewohnheit wird entfernt. Das lässt sich nicht rückgängig machen.</string>
+    <string name="habit_keep">Behalten</string>
+    <string name="habit_action_edit">Gewohnheit bearbeiten</string>
+    <string name="habit_action_share">Fortschritt teilen</string>
+    <string name="habit_action_archive">Archivieren</string>
+</resources>

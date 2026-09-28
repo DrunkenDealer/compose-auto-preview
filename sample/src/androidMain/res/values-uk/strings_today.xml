@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="today_new_habit">Нова звичка</string>
+    <string name="today_greeting">Доброго ранку, %1$s</string>
+    <string name="today_offline">Ви офлайн. Відмітки синхронізуються, щойно зʼявиться звʼязок.</string>
+    <string name="today_retry">Повторити</string>
+    <string name="today_perfect_day">Ідеальний день!</string>
+    <plurals name="today_habits_to_go">
+        <item quantity="one">Залишилась %d звичка</item>
+        <item quantity="few">Залишилось %d звички</item>
+        <item quantity="many">Залишилось %d звичок</item>
+        <item quantity="other">Залишилось %d звички</item>
+    </plurals>
+    <plurals name="today_streak">
+        <item quantity="one">%d день поспіль. Так тримати.</item>
+        <item quantity="few">%d дні поспіль. Так тримати.</item>
+        <item quantity="many">%d днів поспіль. Так тримати.</item>
+        <item quantity="other">%d дня поспіль. Так тримати.</item>
+    </plurals>
+    <string name="today_habits">Звички на сьогодні</string>
+    <string name="today_done_of">%1$d з %2$d</string>
+    <string name="today_mood_question">Як ви почуваєтесь?</string>
+    <string name="today_mood_hint">Торкніться, щоб відмітити настрій</string>
+    <string name="today_mood_logged">Відмічено: %1$s</string>
+    <string name="today_mood_awful">жахливо</string>
+    <string name="today_mood_low">погано</string>
+    <string name="today_mood_okay">нормально</string>
+    <string name="today_mood_good">добре</string>
+    <string name="today_mood_great">чудово</string>
+    <string name="today_empty_title">Посадіть свою першу звичку</string>
+    <string name="today_empty_body">Почніть з малого. Двох хвилин на день достатньо для початку.</string>
+    <string name="today_create_habit">Створити звичку</string>
+    <string name="today_suggestions">Або спробуйте одну з цих</string>
+</resources>

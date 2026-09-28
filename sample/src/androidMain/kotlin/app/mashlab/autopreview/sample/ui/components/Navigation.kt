@@ -2,6 +2,7 @@
 
 package app.mashlab.autopreview.sample.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -28,15 +29,17 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.mashlab.autopreview.sample.R
 
 enum class BloomTab(
-    val label: String,
+    @StringRes val label: Int,
     val icon: ImageVector,
 ) {
-    Today("Today", Icons.Rounded.Today),
-    Insights("Insights", Icons.Rounded.Insights),
-    Profile("Profile", Icons.Rounded.Person),
+    Today(R.string.common_tab_today, Icons.Rounded.Today),
+    Insights(R.string.common_tab_insights, Icons.Rounded.Insights),
+    Profile(R.string.common_tab_profile, Icons.Rounded.Person),
 }
 
 /** Bottom bar on compact widths, navigation rail from 600dp up; [content] is told to go two-pane from 840dp. */
@@ -72,7 +75,7 @@ fun BloomScaffold(
                                 selected = tab == selectedTab,
                                 onClick = { onTabSelect(tab) },
                                 icon = { Icon(tab.icon, contentDescription = null) },
-                                label = { Text(tab.label) },
+                                label = { Text(stringResource(tab.label)) },
                             )
                         }
                     }
@@ -89,7 +92,7 @@ fun BloomScaffold(
                                     selected = tab == selectedTab,
                                     onClick = { onTabSelect(tab) },
                                     icon = { Icon(tab.icon, contentDescription = null) },
-                                    label = { Text(tab.label) },
+                                    label = { Text(stringResource(tab.label)) },
                                 )
                             }
                         }

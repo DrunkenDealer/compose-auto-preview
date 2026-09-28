@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_tab_today">Heute</string>
+    <string name="common_tab_insights">Statistik</string>
+    <string name="common_tab_profile">Profil</string>
+    <string name="common_done">Erledigt</string>
+</resources>

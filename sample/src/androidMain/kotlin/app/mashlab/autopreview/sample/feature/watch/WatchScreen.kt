@@ -20,12 +20,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.annotations.AutoPreview
 import app.mashlab.autopreview.annotations.Device
 import app.mashlab.autopreview.annotations.Theme
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.Habit
 import app.mashlab.autopreview.sample.model.HabitTint
 import app.mashlab.autopreview.sample.model.SampleHabits
@@ -63,7 +65,7 @@ fun WatchScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "habits today",
+                    text = stringResource(R.string.watch_habits_today),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -73,7 +75,7 @@ fun WatchScreen(
                 } else {
                     Icon(
                         Icons.Rounded.EmojiEvents,
-                        contentDescription = "All done",
+                        contentDescription = stringResource(R.string.watch_all_done),
                         tint = HabitTint.Amber.color,
                         modifier = Modifier.size(36.dp),
                     )
@@ -107,6 +109,7 @@ private fun NextHabit(habit: Habit) {
 // A standalone companion: not reachable from the phone app's entry point, so the graph draws it dashed.
 @AutoPreview(
     samplesFrom = WatchSamples::class,
+    locales = ["en", "de", "uk"],
     devices = [Device.Wear],
     themes = [Theme.Dark],
 )

@@ -18,9 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.sample.PreviewBloom
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.Habit
 import app.mashlab.autopreview.sample.ui.theme.BloomTheme
 
@@ -46,18 +48,18 @@ fun HabitActionsSheet(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
         )
         listOf(
-            Icons.Rounded.Edit to "Edit habit",
-            Icons.Rounded.Share to "Share progress",
-            Icons.Rounded.Archive to "Archive",
+            Icons.Rounded.Edit to R.string.habit_action_edit,
+            Icons.Rounded.Share to R.string.habit_action_share,
+            Icons.Rounded.Archive to R.string.habit_action_archive,
         ).forEach { (icon, label) ->
             ListItem(
-                headlineContent = { Text(label) },
+                headlineContent = { Text(stringResource(label)) },
                 leadingContent = { Icon(icon, contentDescription = null) },
                 colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             )
         }
         ListItem(
-            headlineContent = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+            headlineContent = { Text(stringResource(R.string.habit_delete), color = MaterialTheme.colorScheme.error) },
             leadingContent = {
                 Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             },

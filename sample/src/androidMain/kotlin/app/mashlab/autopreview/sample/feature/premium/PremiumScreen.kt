@@ -1,5 +1,6 @@
 package app.mashlab.autopreview.sample.feature.premium
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,41 +40,53 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.sample.PreviewBloom
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.ui.components.InfoBanner
 import app.mashlab.autopreview.sample.ui.theme.BloomTheme
 
 enum class Plan(
-    val title: String,
-    val price: String,
-    val note: String,
-    val badge: String?,
+    @StringRes val title: Int,
+    @StringRes val price: Int,
+    @StringRes val note: Int,
+    @StringRes val badge: Int?,
 ) {
-    Yearly("Yearly", "€29.99 / year", "Just €2.50 a month", "Save 58%"),
-    Monthly("Monthly", "€5.99 / month", "Cancel anytime", null),
+    Yearly(
+        R.string.premium_plan_yearly,
+        R.string.premium_plan_yearly_price,
+        R.string.premium_plan_yearly_note,
+        R.string.premium_plan_yearly_badge,
+    ),
+    Monthly(
+        R.string.premium_plan_monthly,
+        R.string.premium_plan_monthly_price,
+        R.string.premium_plan_monthly_note,
+        null,
+    ),
 }
 
 data class PremiumState(
     val plan: Plan = Plan.Yearly,
     val isPurchasing: Boolean = false,
-    val error: String? = null,
+    @StringRes val error: Int? = null,
 )
 
 object PremiumSamples {
     val Yearly = PremiumState()
     val Monthly = PremiumState(plan = Plan.Monthly)
     val Purchasing = PremiumState(isPurchasing = true)
-    val PaymentFailed = PremiumState(error = "Your payment didn't go through. No charge was made.")
+    val PaymentFailed = PremiumState(error = R.string.premium_error_payment)
 }
 
 private val Features = listOf(
-    Icons.Rounded.AllInclusive to "Unlimited habits",
-    Icons.Rounded.Insights to "Mood and habit insights",
-    Icons.Rounded.CloudDone to "Backup and sync across devices",
-    Icons.Rounded.Palette to "Custom icons and themes",
+    Icons.Rounded.AllInclusive to R.string.premium_feature_unlimited,
+    Icons.Rounded.Insights to R.string.premium_feature_insights,
+    Icons.Rounded.CloudDone to R.string.premium_feature_sync,
+    Icons.Rounded.Palette to R.string.premium_feature_themes,
 )
 
 @Composable
@@ -91,13 +104,13 @@ fun PremiumScreen(
                     modifier = Modifier.widthIn(max = 520.dp).padding(horizontal = 20.dp, vertical = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Features.forEach { (icon, label) -> Feature(icon, label) }
+                    Features.forEach { (icon, label) -> Feature(icon, stringResource(label)) }
                     Spacer(Modifier.height(8.dp))
                     Plan.entries.forEach { PlanCard(it, selected = it == state.plan) }
                     if (state.error != null) {
                         InfoBanner(
                             icon = Icons.Rounded.ErrorOutline,
-                            text = state.error,
+                            text = stringResource(state.error),
                             containerColor = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         )
@@ -111,13 +124,23 @@ fun PremiumScreen(
                         if (state.isPurchasing) {
                             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(12.dp))
-                            Text("Processing…")
+                            Text(stringResource(R.string.premium_processing))
                         } else {
-                            Text(if (state.error != null) "Try again" else "Start 7-day free trial")
+                            Text(
+                                stringResource(
+                                    if (state.error !=
+                                        null
+                                    ) {
+                                        R.string.premium_try_again
+                                    } else {
+                                        R.string.premium_start_trial
+                                    },
+                                ),
+                            )
                         }
                     }
                     Text(
-                        text = "Free for 7 days, then ${state.plan.price}. Cancel anytime in settings.",
+                        text = stringResource(R.string.premium_terms, stringResource(state.plan.price)),
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -138,7 +161,11 @@ private fun Hero(onClose: () -> Unit) {
             .background(Brush.linearGradient(listOf(colors.primaryContainer, colors.tertiaryContainer))),
     ) {
         IconButton(onClick = onClose, modifier = Modifier.padding(8.dp)) {
-            Icon(Icons.Rounded.Close, contentDescription = "Close", tint = colors.onPrimaryContainer)
+            Icon(
+                Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.premium_close),
+                tint = colors.onPrimaryContainer,
+            )
         }
         Column(
             modifier = Modifier.fillMaxWidth().padding(top = 56.dp, bottom = 32.dp, start = 24.dp, end = 24.dp),
@@ -162,7 +189,7 @@ private fun Hero(onClose: () -> Unit) {
             Text("Bloom Premium", style = MaterialTheme.typography.headlineMedium, color = colors.onPrimaryContainer)
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "Everything you need to keep growing.",
+                text = stringResource(R.string.premium_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.onPrimaryContainer.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
@@ -211,13 +238,17 @@ private fun PlanCard(
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(horizontal = 8.dp))
             Column(Modifier.weight(1f)) {
-                Text(plan.title, style = MaterialTheme.typography.titleMedium)
-                Text(plan.note, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text(stringResource(plan.title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(plan.note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                )
             }
             Column(horizontalAlignment = Alignment.End) {
                 if (plan.badge != null) {
                     Text(
-                        text = plan.badge,
+                        text = stringResource(plan.badge),
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(colors.tertiary)
@@ -227,7 +258,7 @@ private fun PlanCard(
                     )
                     Spacer(Modifier.height(4.dp))
                 }
-                Text(plan.price, style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(plan.price), style = MaterialTheme.typography.titleSmall)
             }
         }
     }

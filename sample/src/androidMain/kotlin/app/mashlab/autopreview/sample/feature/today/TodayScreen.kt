@@ -1,5 +1,6 @@
 package app.mashlab.autopreview.sample.feature.today
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,11 +41,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.annotations.AutoPreview
 import app.mashlab.autopreview.annotations.Device
 import app.mashlab.autopreview.annotations.Theme
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.Habit
 import app.mashlab.autopreview.sample.model.Mood
 import app.mashlab.autopreview.sample.model.SampleHabits
@@ -58,10 +63,14 @@ import app.mashlab.autopreview.sample.ui.components.ProgressRing
 import app.mashlab.autopreview.sample.ui.components.SectionHeader
 import app.mashlab.autopreview.sample.ui.components.SkeletonBlock
 import app.mashlab.autopreview.sample.ui.theme.BloomTheme
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 
 data class TodayState(
     val name: String = "Maya",
-    val date: String = "Thursday, 25 September",
+    val date: LocalDate = LocalDate.of(2025, 9, 25),
     val habits: List<Habit> = emptyList(),
     val streak: Int = 0,
     val week: List<Boolean> = emptyList(),
@@ -151,13 +160,13 @@ private fun AddHabitButton(
             onClick = onClick,
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-        ) { Icon(Icons.Rounded.Add, contentDescription = "New habit") }
+        ) { Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.today_new_habit)) }
         return
     }
     ExtendedFloatingActionButton(
         onClick = onClick,
         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-        text = { Text("New habit") },
+        text = { Text(stringResource(R.string.today_new_habit)) },
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     )
@@ -166,13 +175,17 @@ private fun AddHabitButton(
 @Composable
 private fun Greeting(state: TodayState) {
     Column {
+        val locale = LocalConfiguration.current.locales[0]
+        val pattern = DateFormat.getBestDateTimePattern(locale, "EEEEdMMMM")
         Text(
-            text = state.date.uppercase(),
+            text = state.date
+                .format(DateTimeFormatter.ofPattern(pattern, locale))
+                .uppercase(locale),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(4.dp))
-        Text("Good morning, ${state.name}", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.today_greeting, state.name), style = MaterialTheme.typography.headlineMedium)
     }
 }
 
@@ -180,9 +193,9 @@ private fun Greeting(state: TodayState) {
 private fun OfflineBanner() {
     InfoBanner(
         icon = Icons.Rounded.CloudOff,
-        text = "You're offline. Check-ins will sync when you reconnect.",
+        text = stringResource(R.string.today_offline),
     ) {
-        TextButton(onClick = {}) { Text("Retry") }
+        TextButton(onClick = {}) { Text(stringResource(R.string.today_retry)) }
     }
 }
 
@@ -214,13 +227,17 @@ private fun SummaryCard(state: TodayState) {
             Spacer(Modifier.width(20.dp))
             Column {
                 Text(
-                    text = if (allDone) "Perfect day!" else "${total - done} habits to go",
+                    text = if (allDone) {
+                        stringResource(R.string.today_perfect_day)
+                    } else {
+                        pluralStringResource(R.plurals.today_habits_to_go, total - done, total - done)
+                    },
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "${state.streak}-day streak. Keep it growing.",
+                    text = pluralStringResource(R.plurals.today_streak, state.streak, state.streak),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                         .copy(alpha = 0.8f),
@@ -234,7 +251,8 @@ private fun SummaryCard(state: TodayState) {
 
 @Composable
 private fun WeekStrip(week: List<Boolean>) {
-    val days = listOf("M", "T", "W", "T", "F", "S", "S")
+    val locale = LocalConfiguration.current.locales[0]
+    val days = DayOfWeek.entries.map { it.getDisplayName(TextStyle.NARROW, locale) }
     val today = 3
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         days.forEachIndexed { index, day ->
@@ -270,27 +288,34 @@ private fun HabitList(
     onHabitClick: (Habit) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionHeader("Today's habits", trailing = "${habits.count { it.done }} of ${habits.size}")
+        SectionHeader(
+            stringResource(R.string.today_habits),
+            trailing = stringResource(R.string.today_done_of, habits.count { it.done }, habits.size),
+        )
         habits.forEach { habit ->
             HabitRow(habit, onClick = { onHabitClick(habit) })
         }
     }
 }
 
-private val MoodIcons: Map<Mood, ImageVector> = mapOf(
-    Mood.Awful to Icons.Rounded.SentimentVeryDissatisfied,
-    Mood.Low to Icons.Rounded.SentimentDissatisfied,
-    Mood.Okay to Icons.Rounded.SentimentNeutral,
-    Mood.Good to Icons.Rounded.SentimentSatisfied,
-    Mood.Great to Icons.Rounded.SentimentVerySatisfied,
+private val MoodIcons: Map<Mood, Pair<ImageVector, Int>> = mapOf(
+    Mood.Awful to (Icons.Rounded.SentimentVeryDissatisfied to R.string.today_mood_awful),
+    Mood.Low to (Icons.Rounded.SentimentDissatisfied to R.string.today_mood_low),
+    Mood.Okay to (Icons.Rounded.SentimentNeutral to R.string.today_mood_okay),
+    Mood.Good to (Icons.Rounded.SentimentSatisfied to R.string.today_mood_good),
+    Mood.Great to (Icons.Rounded.SentimentVerySatisfied to R.string.today_mood_great),
 )
 
 @Composable
 private fun MoodCard(mood: Mood?) {
     BloomCard {
-        Text("How are you feeling?", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.today_mood_question), style = MaterialTheme.typography.titleMedium)
         Text(
-            text = if (mood == null) "Tap to log today's mood" else "Logged: ${mood.name.lowercase()}",
+            text = if (mood == null) {
+                stringResource(R.string.today_mood_hint)
+            } else {
+                stringResource(R.string.today_mood_logged, stringResource(MoodIcons.getValue(mood).second))
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -309,9 +334,10 @@ private fun MoodCard(mood: Mood?) {
                     },
                 ) {
                     Box(contentAlignment = Alignment.Center) {
+                        val (icon, label) = MoodIcons.getValue(it)
                         Icon(
-                            MoodIcons.getValue(it),
-                            contentDescription = it.name,
+                            icon,
+                            contentDescription = stringResource(label),
                             tint = if (selected) {
                                 MaterialTheme.colorScheme.onTertiaryContainer
                             } else {
@@ -342,17 +368,17 @@ private fun EmptyContent(
         Spacer(Modifier.height(48.dp))
         EmptyState(
             icon = Icons.Rounded.Park,
-            title = "Plant your first habit",
-            body = "Start with something small. Two minutes a day is enough to begin.",
+            title = stringResource(R.string.today_empty_title),
+            body = stringResource(R.string.today_empty_body),
         ) {
             Button(onClick = onAddHabit, modifier = Modifier.height(52.dp)) {
                 Icon(Icons.Rounded.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Create a habit")
+                Text(stringResource(R.string.today_create_habit))
             }
         }
         Text(
-            text = "Or try one of these",
+            text = stringResource(R.string.today_suggestions),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -386,6 +412,7 @@ private fun LoadingContent(expanded: Boolean) {
 
 @AutoPreview(
     samplesFrom = TodaySamples::class,
+    locales = ["en", "de", "uk"],
     devices = [Device.Phone, Device.Tablet, Device.Foldable, Device.Desktop],
     themes = [Theme.Light, Theme.Dark],
     navigatesTo = ["HabitDetailScreen", "EditHabitScreen"],

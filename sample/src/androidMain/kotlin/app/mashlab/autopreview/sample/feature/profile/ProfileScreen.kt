@@ -37,22 +37,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.sample.PreviewBloom
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.ui.components.Avatar
 import app.mashlab.autopreview.sample.ui.components.BloomCard
 import app.mashlab.autopreview.sample.ui.components.BloomScaffold
 import app.mashlab.autopreview.sample.ui.components.BloomTab
 import app.mashlab.autopreview.sample.ui.components.StatTile
 import app.mashlab.autopreview.sample.ui.theme.BloomTheme
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 data class ProfileState(
     val name: String = "Maya Lin",
     val email: String = "maya.lin@example.com",
-    val memberSince: String = "March 2025",
+    val memberSince: YearMonth = YearMonth.of(2025, 3),
     val isPremium: Boolean = false,
     val remindersOn: Boolean = true,
     val weeklyReportOn: Boolean = true,
@@ -87,29 +92,49 @@ fun ProfileScreen(
             ) {
                 Header(state)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatTile("6", "Habits", Modifier.weight(1f))
-                    StatTile("34", "Best streak", Modifier.weight(1f))
-                    StatTile("318", "Check-ins", Modifier.weight(1f))
+                    StatTile("6", stringResource(R.string.profile_stat_habits), Modifier.weight(1f))
+                    StatTile("34", stringResource(R.string.profile_stat_best_streak), Modifier.weight(1f))
+                    StatTile("318", stringResource(R.string.profile_stat_check_ins), Modifier.weight(1f))
                 }
                 if (!state.isPremium) UpgradeCard(onUpgrade)
                 SettingsGroup {
-                    SettingRow(Icons.Rounded.Notifications, "Daily reminders", if (state.remindersOn) "On" else "Off") {
+                    SettingRow(
+                        Icons.Rounded.Notifications,
+                        stringResource(R.string.profile_reminders),
+                        stringResource(if (state.remindersOn) R.string.profile_on else R.string.profile_off),
+                    ) {
                         Switch(checked = state.remindersOn, onCheckedChange = null)
                     }
-                    SettingRow(Icons.Rounded.Mail, "Weekly report", "Every Sunday by email") {
+                    SettingRow(
+                        Icons.Rounded.Mail,
+                        stringResource(R.string.profile_weekly_report),
+                        stringResource(R.string.profile_weekly_report_schedule),
+                    ) {
                         Switch(checked = state.weeklyReportOn, onCheckedChange = null)
                     }
-                    SettingRow(Icons.Rounded.DarkMode, "Appearance", "Follow system")
-                    SettingRow(Icons.Rounded.Language, "Language", "English")
+                    SettingRow(
+                        Icons.Rounded.DarkMode,
+                        stringResource(R.string.profile_appearance),
+                        stringResource(R.string.profile_appearance_system),
+                    )
+                    SettingRow(
+                        Icons.Rounded.Language,
+                        stringResource(R.string.profile_language),
+                        stringResource(R.string.profile_language_current),
+                    )
                 }
                 SettingsGroup {
-                    SettingRow(Icons.Rounded.Download, "Export data", "CSV or JSON")
-                    SettingRow(Icons.Rounded.Shield, "Privacy", null)
+                    SettingRow(
+                        Icons.Rounded.Download,
+                        stringResource(R.string.profile_export),
+                        stringResource(R.string.profile_export_formats),
+                    )
+                    SettingRow(Icons.Rounded.Shield, stringResource(R.string.profile_privacy), null)
                 }
                 TextButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Sign out")
+                    Text(stringResource(R.string.profile_sign_out))
                 }
                 Text(
                     text = "Bloom 2.4.0",
@@ -162,15 +187,19 @@ private fun Header(state: ProfileState) {
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "Premium",
+                            text = stringResource(R.string.profile_premium),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                 }
             } else {
+                val locale = LocalConfiguration.current.locales[0]
                 Text(
-                    text = "Member since ${state.memberSince}",
+                    text = stringResource(
+                        R.string.profile_member_since,
+                        state.memberSince.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
+                    ),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -192,12 +221,12 @@ private fun UpgradeCard(onUpgrade: () -> Unit) {
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "Unlock Bloom Premium",
+                    text = stringResource(R.string.profile_upgrade_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
                 Text(
-                    text = "Unlimited habits, mood insights and backups.",
+                    text = stringResource(R.string.profile_upgrade_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                         .copy(alpha = 0.8f),
@@ -212,7 +241,7 @@ private fun UpgradeCard(onUpgrade: () -> Unit) {
                 containerColor = MaterialTheme.colorScheme.tertiary,
                 contentColor = MaterialTheme.colorScheme.onTertiary,
             ),
-        ) { Text("Try free for 7 days") }
+        ) { Text(stringResource(R.string.profile_upgrade_cta)) }
     }
 }
 

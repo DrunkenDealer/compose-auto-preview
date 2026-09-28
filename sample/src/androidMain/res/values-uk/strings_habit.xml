@@ -1,0 +1,62 @@
+<resources>
+    <string-array name="habit_weekdays">
+        <item>П</item>
+        <item>В</item>
+        <item>С</item>
+        <item>Ч</item>
+        <item>П</item>
+        <item>С</item>
+        <item>Н</item>
+    </string-array>
+    <string name="habit_back">Назад</string>
+    <string name="habit_edit">Редагувати</string>
+    <string name="habit_delete">Видалити</string>
+    <string name="habit_close">Закрити</string>
+    <plurals name="habit_streak_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дні</item>
+        <item quantity="many">%d днів</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+    <string name="habit_streak_reset">Серію перервано</string>
+    <string name="habit_streak_current">Поточна серія · рекорд %d</string>
+    <string name="habit_streak_restart">Відмітьтеся сьогодні, щоб почати нову</string>
+    <string name="habit_stat_completion">Виконано</string>
+    <string name="habit_stat_best_streak">Рекорд</string>
+    <string name="habit_stat_check_ins">Відмітки</string>
+    <string name="habit_calendar_month">Вересень 2026</string>
+    <string name="habit_reminder">Нагадування</string>
+    <string name="habit_reminder_off">Вимкнено</string>
+    <string name="habit_done_today">На сьогодні виконано</string>
+    <string name="habit_mark_done">Позначити виконаним</string>
+    <string name="habit_edit_title">Редагувати звичку</string>
+    <string name="habit_new_title">Нова звичка</string>
+    <string name="habit_name_fallback">Ваша нова звичка</string>
+    <string name="habit_name_label">Назва</string>
+    <string name="habit_name_placeholder">напр. Пити воду</string>
+    <string name="habit_name_error">Дайте звичці назву</string>
+    <string name="habit_icon">Іконка</string>
+    <string name="habit_colour">Колір</string>
+    <string name="habit_repeat">Повторювати</string>
+    <string name="habit_repeat_error">Оберіть хоча б один день</string>
+    <string name="habit_no_days">Дні не обрано</string>
+    <string name="habit_every_day">Щодня</string>
+    <string name="habit_save_changes">Зберегти зміни</string>
+    <string name="habit_create">Створити звичку</string>
+    <string name="habit_delete_habit">Видалити звичку</string>
+    <string name="habit_remind_me">Нагадувати</string>
+    <string name="habit_remind_at">О %s</string>
+    <string name="habit_no_reminder">Без нагадування</string>
+    <string name="habit_delete_title">Видалити «%s»?</string>
+    <plurals name="habit_delete_body_streak">
+        <item quantity="one">Ви втратите серію в %d день і всю історію відміток. Це не можна скасувати.</item>
+        <item quantity="few">Ви втратите серію в %d дні і всю історію відміток. Це не можна скасувати.</item>
+        <item quantity="many">Ви втратите серію в %d днів і всю історію відміток. Це не можна скасувати.</item>
+        <item quantity="other">Ви втратите серію в %d дня і всю історію відміток. Це не можна скасувати.</item>
+    </plurals>
+    <string name="habit_delete_body">Усю історію відміток цієї звички буде видалено. Це не можна скасувати.</string>
+    <string name="habit_keep">Залишити</string>
+    <string name="habit_action_edit">Редагувати звичку</string>
+    <string name="habit_action_share">Поділитися прогресом</string>
+    <string name="habit_action_archive">Архівувати</string>
+</resources>

@@ -2,4 +2,12 @@
     <string name="about_title">Bloom Kit</string>
     <string name="about_tagline">Спільний інтерфейс для Android та iOS, зібраний із ресурсів Compose.</string>
     <string name="about_version">Версія %1$s</string>
+    <string name="profile_streak_none">Серії ще немає</string>
+    <plurals name="profile_streak">
+        <item quantity="one">%1$d день поспіль</item>
+        <item quantity="few">%1$d дні поспіль</item>
+        <item quantity="many">%1$d днів поспіль</item>
+        <item quantity="other">%1$d дня поспіль</item>
+    </plurals>
+    <string name="profile_empty">Додайте першу звичку, щоб почати.</string>
 </resources>

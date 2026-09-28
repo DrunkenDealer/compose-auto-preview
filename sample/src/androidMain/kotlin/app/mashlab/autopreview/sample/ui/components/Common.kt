@@ -37,10 +37,12 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.Habit
 import app.mashlab.autopreview.sample.model.HabitTint
 
@@ -160,7 +162,7 @@ fun CheckButton(
             Box(circle.background(color), contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Rounded.Check,
-                    contentDescription = "Done",
+                    contentDescription = stringResource(R.string.common_done),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp),
                 )

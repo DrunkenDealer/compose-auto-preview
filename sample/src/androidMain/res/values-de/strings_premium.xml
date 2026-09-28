@@ -1,0 +1,20 @@
+<resources>
+    <string name="premium_subtitle">Alles, was du brauchst, um weiter zu wachsen.</string>
+    <string name="premium_close">Schließen</string>
+    <string name="premium_feature_unlimited">Unbegrenzte Gewohnheiten</string>
+    <string name="premium_feature_insights">Einblicke in Stimmung und Gewohnheiten</string>
+    <string name="premium_feature_sync">Backup und Sync auf allen Geräten</string>
+    <string name="premium_feature_themes">Eigene Icons und Designs</string>
+    <string name="premium_plan_yearly">Jährlich</string>
+    <string name="premium_plan_yearly_price">29,99 € / Jahr</string>
+    <string name="premium_plan_yearly_note">Nur 2,50 € im Monat</string>
+    <string name="premium_plan_yearly_badge" formatted="false">58 % sparen</string>
+    <string name="premium_plan_monthly">Monatlich</string>
+    <string name="premium_plan_monthly_price">5,99 € / Monat</string>
+    <string name="premium_plan_monthly_note">Jederzeit kündbar</string>
+    <string name="premium_processing">Wird verarbeitet…</string>
+    <string name="premium_try_again">Erneut versuchen</string>
+    <string name="premium_start_trial">7 Tage gratis testen</string>
+    <string name="premium_terms">7 Tage kostenlos, danach %1$s. Jederzeit in den Einstellungen kündbar.</string>
+    <string name="premium_error_payment">Deine Zahlung ist fehlgeschlagen. Es wurde nichts abgebucht.</string>
+</resources>

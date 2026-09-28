@@ -13,8 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import app.mashlab.autopreview.sample.PreviewBloom
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.Habit
 import app.mashlab.autopreview.sample.ui.theme.BloomTheme
 
@@ -34,13 +37,13 @@ fun DeleteHabitDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
         icon = { Icon(Icons.Rounded.DeleteOutline, contentDescription = null) },
-        title = { Text("Delete “${habit.name}”?") },
+        title = { Text(stringResource(R.string.habit_delete_title, habit.name)) },
         text = {
             Text(
                 if (habit.streak > 0) {
-                    "You'll lose your ${habit.streak}-day streak and all check-in history. This can't be undone."
+                    pluralStringResource(R.plurals.habit_delete_body_streak, habit.streak, habit.streak)
                 } else {
-                    "All check-in history for this habit will be removed. This can't be undone."
+                    stringResource(R.string.habit_delete_body)
                 },
             )
         },
@@ -51,9 +54,9 @@ fun DeleteHabitDialog(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
                 ),
-            ) { Text("Delete") }
+            ) { Text(stringResource(R.string.habit_delete)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Keep habit") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.habit_keep)) } },
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     )
 }

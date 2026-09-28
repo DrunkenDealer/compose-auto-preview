@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="today_new_habit">New habit</string>
+    <string name="today_greeting">Good morning, %1$s</string>
+    <string name="today_offline">You\'re offline. Check-ins will sync when you reconnect.</string>
+    <string name="today_retry">Retry</string>
+    <string name="today_perfect_day">Perfect day!</string>
+    <plurals name="today_habits_to_go">
+        <item quantity="one">%d habit to go</item>
+        <item quantity="other">%d habits to go</item>
+    </plurals>
+    <plurals name="today_streak">
+        <item quantity="one">%d-day streak. Keep it growing.</item>
+        <item quantity="other">%d-day streak. Keep it growing.</item>
+    </plurals>
+    <string name="today_habits">Today\'s habits</string>
+    <string name="today_done_of">%1$d of %2$d</string>
+    <string name="today_mood_question">How are you feeling?</string>
+    <string name="today_mood_hint">Tap to log today\'s mood</string>
+    <string name="today_mood_logged">Logged: %1$s</string>
+    <string name="today_mood_awful">awful</string>
+    <string name="today_mood_low">low</string>
+    <string name="today_mood_okay">okay</string>
+    <string name="today_mood_good">good</string>
+    <string name="today_mood_great">great</string>
+    <string name="today_empty_title">Plant your first habit</string>
+    <string name="today_empty_body">Start with something small. Two minutes a day is enough to begin.</string>
+    <string name="today_create_habit">Create a habit</string>
+    <string name="today_suggestions">Or try one of these</string>
+</resources>

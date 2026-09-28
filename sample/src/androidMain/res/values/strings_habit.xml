@@ -1,0 +1,58 @@
+<resources>
+    <string-array name="habit_weekdays">
+        <item>M</item>
+        <item>T</item>
+        <item>W</item>
+        <item>T</item>
+        <item>F</item>
+        <item>S</item>
+        <item>S</item>
+    </string-array>
+    <string name="habit_back">Back</string>
+    <string name="habit_edit">Edit</string>
+    <string name="habit_delete">Delete</string>
+    <string name="habit_close">Close</string>
+    <plurals name="habit_streak_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="habit_streak_reset">Streak reset</string>
+    <string name="habit_streak_current">Current streak · best is %d</string>
+    <string name="habit_streak_restart">Check in today to start a new one</string>
+    <string name="habit_stat_completion">Completion</string>
+    <string name="habit_stat_best_streak">Best streak</string>
+    <string name="habit_stat_check_ins">Check-ins</string>
+    <string name="habit_calendar_month">September 2026</string>
+    <string name="habit_reminder">Reminder</string>
+    <string name="habit_reminder_off">Off</string>
+    <string name="habit_done_today">Done for today</string>
+    <string name="habit_mark_done">Mark as done</string>
+    <string name="habit_edit_title">Edit habit</string>
+    <string name="habit_new_title">New habit</string>
+    <string name="habit_name_fallback">Your new habit</string>
+    <string name="habit_name_label">Name</string>
+    <string name="habit_name_placeholder">e.g. Drink water</string>
+    <string name="habit_name_error">Give your habit a name</string>
+    <string name="habit_icon">Icon</string>
+    <string name="habit_colour">Colour</string>
+    <string name="habit_repeat">Repeat</string>
+    <string name="habit_repeat_error">Pick at least one day</string>
+    <string name="habit_no_days">No days selected</string>
+    <string name="habit_every_day">Every day</string>
+    <string name="habit_save_changes">Save changes</string>
+    <string name="habit_create">Create habit</string>
+    <string name="habit_delete_habit">Delete habit</string>
+    <string name="habit_remind_me">Remind me</string>
+    <string name="habit_remind_at">At %s</string>
+    <string name="habit_no_reminder">No reminder</string>
+    <string name="habit_delete_title">Delete “%s”?</string>
+    <plurals name="habit_delete_body_streak">
+        <item quantity="one">You\'ll lose your %d-day streak and all check-in history. This can\'t be undone.</item>
+        <item quantity="other">You\'ll lose your %d-day streak and all check-in history. This can\'t be undone.</item>
+    </plurals>
+    <string name="habit_delete_body">All check-in history for this habit will be removed. This can\'t be undone.</string>
+    <string name="habit_keep">Keep habit</string>
+    <string name="habit_action_edit">Edit habit</string>
+    <string name="habit_action_share">Share progress</string>
+    <string name="habit_action_archive">Archive</string>
+</resources>

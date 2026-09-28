@@ -1,5 +1,6 @@
 package app.mashlab.autopreview.sample.feature.habit
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,9 +50,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.sample.PreviewBloom
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.Habit
 import app.mashlab.autopreview.sample.model.HabitTint
 import app.mashlab.autopreview.sample.ui.components.HabitRow
@@ -67,15 +71,13 @@ private val HabitIcons = listOf(
     Icons.Rounded.Bedtime,
 )
 
-private val Weekdays = listOf("M", "T", "W", "T", "F", "S", "S")
-
 data class EditHabitState(
     val name: String = "",
     val icon: ImageVector = Icons.Rounded.Spa,
     val tint: HabitTint = HabitTint.Sage,
     val days: Set<Int> = (0..6).toSet(),
     val reminder: String? = null,
-    val nameError: String? = null,
+    @StringRes val nameError: Int? = null,
     val isEditing: Boolean = false,
 )
 
@@ -88,7 +90,7 @@ object EditHabitSamples {
         days = setOf(0, 2, 4),
         reminder = "07:00",
     )
-    val Invalid = EditHabitState(days = emptySet(), nameError = "Give your habit a name")
+    val Invalid = EditHabitState(days = emptySet(), nameError = R.string.habit_name_error)
     val Editing = EditHabitState(
         name = "Read",
         icon = Icons.AutoMirrored.Rounded.MenuBook,
@@ -112,9 +114,13 @@ fun EditHabitScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isEditing) "Edit habit" else "New habit") },
+                title = {
+                    Text(stringResource(if (state.isEditing) R.string.habit_edit_title else R.string.habit_new_title))
+                },
                 navigationIcon = {
-                    IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, contentDescription = "Close") }
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.habit_close))
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
@@ -127,16 +133,17 @@ fun EditHabitScreen(
                 .verticalScroll(rememberScrollState()),
             contentAlignment = Alignment.TopCenter,
         ) {
+            val weekdays = stringArrayResource(R.array.habit_weekdays)
             Column(
                 modifier = Modifier.widthIn(max = 560.dp).padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 HabitRow(
                     Habit(
-                        name = state.name.ifBlank { "Your new habit" },
+                        name = state.name.ifBlank { stringResource(R.string.habit_name_fallback) },
                         icon = state.icon,
                         tint = state.tint,
-                        schedule = scheduleLabel(state),
+                        schedule = scheduleLabel(state, weekdays),
                         streak = 0,
                     ),
                 )
@@ -144,28 +151,31 @@ fun EditHabitScreen(
                     value = state.name,
                     onValueChange = {},
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Name") },
-                    placeholder = { Text("e.g. Drink water") },
+                    label = { Text(stringResource(R.string.habit_name_label)) },
+                    placeholder = { Text(stringResource(R.string.habit_name_placeholder)) },
                     isError = state.nameError != null,
-                    supportingText = state.nameError?.let { { Text(it) } },
+                    supportingText = state.nameError?.let { { Text(stringResource(it)) } },
                     singleLine = true,
                     shape = MaterialTheme.shapes.small,
                 )
-                Section("Icon") {
+                Section(stringResource(R.string.habit_icon)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         HabitIcons.forEach { icon ->
                             IconChoice(icon, selected = icon == state.icon, tint = state.tint, Modifier.weight(1f))
                         }
                     }
                 }
-                Section("Colour") {
+                Section(stringResource(R.string.habit_colour)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         HabitTint.entries.forEach { ColorChoice(it, selected = it == state.tint) }
                     }
                 }
-                Section("Repeat", error = "Pick at least one day".takeIf { state.days.isEmpty() }) {
+                Section(
+                    title = stringResource(R.string.habit_repeat),
+                    error = stringResource(R.string.habit_repeat_error).takeIf { state.days.isEmpty() },
+                ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Weekdays.forEachIndexed { index, day ->
+                        weekdays.forEachIndexed { index, day ->
                             DayChoice(day, selected = index in state.days, Modifier.weight(1f))
                         }
                     }
@@ -173,11 +183,11 @@ fun EditHabitScreen(
                 ReminderRow(state.reminder)
                 Spacer(Modifier.height(4.dp))
                 Button(onClick = onSave, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text(if (state.isEditing) "Save changes" else "Create habit")
+                    Text(stringResource(if (state.isEditing) R.string.habit_save_changes else R.string.habit_create))
                 }
                 if (state.isEditing) {
                     TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-                        Text("Delete habit", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.habit_delete_habit), color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -185,20 +195,24 @@ fun EditHabitScreen(
     }
 }
 
-private fun scheduleLabel(state: EditHabitState): String {
+@Composable
+private fun scheduleLabel(
+    state: EditHabitState,
+    weekdays: Array<String>,
+): String {
     val days = when (state.days.size) {
         0 -> {
-            "No days selected"
+            stringResource(R.string.habit_no_days)
         }
 
         7 -> {
-            "Every day"
+            stringResource(R.string.habit_every_day)
         }
 
         else -> {
             state.days
                 .sorted()
-                .joinToString(" ") { Weekdays[it] }
+                .joinToString(" ") { weekdays[it] }
         }
     }
     return state.reminder?.let { "$days · $it" } ?: days
@@ -292,9 +306,13 @@ private fun ReminderRow(reminder: String?) {
             Icon(Icons.Rounded.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text("Remind me", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.habit_remind_me), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    text = reminder?.let { "At $it" } ?: "No reminder",
+                    text = if (reminder != null) {
+                        stringResource(R.string.habit_remind_at, reminder)
+                    } else {
+                        stringResource(R.string.habit_no_reminder)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

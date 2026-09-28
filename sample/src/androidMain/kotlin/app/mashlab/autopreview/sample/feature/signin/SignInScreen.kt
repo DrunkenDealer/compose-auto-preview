@@ -1,5 +1,6 @@
 package app.mashlab.autopreview.sample.feature.signin
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,10 +33,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.sample.PreviewBloom
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.ui.components.BloomLogo
 import app.mashlab.autopreview.sample.ui.components.InfoBanner
 import app.mashlab.autopreview.sample.ui.theme.BloomTheme
@@ -44,14 +47,14 @@ data class SignInState(
     val email: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null,
+    @StringRes val error: Int? = null,
 )
 
 object SignInSamples {
     val Empty = SignInState()
     val Filled = SignInState(email = "maya.lin@example.com", password = "hunter22")
     val Loading = Filled.copy(isLoading = true)
-    val WrongPassword = Filled.copy(error = "That password doesn't match. Try again or reset it.")
+    val WrongPassword = Filled.copy(error = R.string.signin_error_wrong_password)
 }
 
 @Composable
@@ -73,10 +76,10 @@ fun SignInScreen(
                 Spacer(Modifier.height(40.dp))
                 BloomLogo(size = 64.dp)
                 Spacer(Modifier.height(24.dp))
-                Text("Welcome back", style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(R.string.signin_title), style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Sign in to pick up your streaks.",
+                    text = stringResource(R.string.signin_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -84,7 +87,7 @@ fun SignInScreen(
                 if (state.error != null) {
                     InfoBanner(
                         icon = Icons.Rounded.ErrorOutline,
-                        text = state.error,
+                        text = stringResource(state.error),
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     )
@@ -104,9 +107,9 @@ fun SignInScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.width(12.dp))
-                        Text("Signing in…")
+                        Text(stringResource(R.string.signin_signing_in))
                     } else {
-                        Text("Sign in")
+                        Text(stringResource(R.string.signin_sign_in))
                     }
                 }
                 Spacer(Modifier.height(24.dp))
@@ -116,7 +119,7 @@ fun SignInScreen(
                 ) {
                     HorizontalDivider(Modifier.weight(1f))
                     Text(
-                        text = "New to Bloom?",
+                        text = stringResource(R.string.signin_new_to_bloom),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -124,7 +127,7 @@ fun SignInScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 OutlinedButton(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text("Create an account")
+                    Text(stringResource(R.string.signin_create_account))
                 }
             }
         }
@@ -138,7 +141,7 @@ private fun Form(state: SignInState) {
             value = state.email,
             onValueChange = {},
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.signin_email)) },
             leadingIcon = { Icon(Icons.Rounded.Mail, contentDescription = null) },
             singleLine = true,
             enabled = !state.isLoading,
@@ -149,9 +152,11 @@ private fun Form(state: SignInState) {
             value = state.password,
             onValueChange = {},
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Password") },
+            label = { Text(stringResource(R.string.signin_password)) },
             leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
-            trailingIcon = { Icon(Icons.Rounded.Visibility, contentDescription = "Show password") },
+            trailingIcon = {
+                Icon(Icons.Rounded.Visibility, contentDescription = stringResource(R.string.signin_show_password))
+            },
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
             enabled = !state.isLoading,
@@ -159,7 +164,7 @@ private fun Form(state: SignInState) {
             shape = MaterialTheme.shapes.small,
         )
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            TextButton(onClick = {}) { Text("Forgot password?") }
+            TextButton(onClick = {}) { Text(stringResource(R.string.signin_forgot_password)) }
         }
     }
 }

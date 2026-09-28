@@ -1,0 +1,23 @@
+<resources>
+    <string name="profile_stat_habits">Habits</string>
+    <string name="profile_stat_best_streak">Best streak</string>
+    <string name="profile_stat_check_ins">Check-ins</string>
+    <string name="profile_member_since">Member since %1$s</string>
+    <string name="profile_premium">Premium</string>
+    <string name="profile_upgrade_title">Unlock Bloom Premium</string>
+    <string name="profile_upgrade_body">Unlimited habits, mood insights and backups.</string>
+    <string name="profile_upgrade_cta">Try free for 7 days</string>
+    <string name="profile_reminders">Daily reminders</string>
+    <string name="profile_on">On</string>
+    <string name="profile_off">Off</string>
+    <string name="profile_weekly_report">Weekly report</string>
+    <string name="profile_weekly_report_schedule">Every Sunday by email</string>
+    <string name="profile_appearance">Appearance</string>
+    <string name="profile_appearance_system">Follow system</string>
+    <string name="profile_language">Language</string>
+    <string name="profile_language_current">English</string>
+    <string name="profile_export">Export data</string>
+    <string name="profile_export_formats">CSV or JSON</string>
+    <string name="profile_privacy">Privacy</string>
+    <string name="profile_sign_out">Sign out</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_tab_today">Сьогодні</string>
+    <string name="common_tab_insights">Статистика</string>
+    <string name="common_tab_profile">Профіль</string>
+    <string name="common_done">Виконано</string>
+</resources>

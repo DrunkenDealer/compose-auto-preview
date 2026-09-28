@@ -1,0 +1,20 @@
+<resources>
+    <string name="premium_subtitle">Усе, щоб і далі зростати.</string>
+    <string name="premium_close">Закрити</string>
+    <string name="premium_feature_unlimited">Необмежена кількість звичок</string>
+    <string name="premium_feature_insights">Аналітика настрою та звичок</string>
+    <string name="premium_feature_sync">Резервні копії та синхронізація між пристроями</string>
+    <string name="premium_feature_themes">Власні іконки та теми</string>
+    <string name="premium_plan_yearly">Щорічно</string>
+    <string name="premium_plan_yearly_price">29,99 € / рік</string>
+    <string name="premium_plan_yearly_note">Лише 2,50 € на місяць</string>
+    <string name="premium_plan_yearly_badge" formatted="false">Знижка 58%</string>
+    <string name="premium_plan_monthly">Щомісяця</string>
+    <string name="premium_plan_monthly_price">5,99 € / місяць</string>
+    <string name="premium_plan_monthly_note">Скасування будь-коли</string>
+    <string name="premium_processing">Обробка…</string>
+    <string name="premium_try_again">Спробувати ще раз</string>
+    <string name="premium_start_trial">Почати 7 днів безкоштовно</string>
+    <string name="premium_terms">7 днів безкоштовно, далі %1$s. Скасувати можна будь-коли в налаштуваннях.</string>
+    <string name="premium_error_payment">Платіж не пройшов. Кошти не списано.</string>
+</resources>

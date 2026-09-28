@@ -1,0 +1,20 @@
+<resources>
+    <string name="premium_subtitle">Everything you need to keep growing.</string>
+    <string name="premium_close">Close</string>
+    <string name="premium_feature_unlimited">Unlimited habits</string>
+    <string name="premium_feature_insights">Mood and habit insights</string>
+    <string name="premium_feature_sync">Backup and sync across devices</string>
+    <string name="premium_feature_themes">Custom icons and themes</string>
+    <string name="premium_plan_yearly">Yearly</string>
+    <string name="premium_plan_yearly_price">€29.99 / year</string>
+    <string name="premium_plan_yearly_note">Just €2.50 a month</string>
+    <string name="premium_plan_yearly_badge" formatted="false">Save 58%</string>
+    <string name="premium_plan_monthly">Monthly</string>
+    <string name="premium_plan_monthly_price">€5.99 / month</string>
+    <string name="premium_plan_monthly_note">Cancel anytime</string>
+    <string name="premium_processing">Processing…</string>
+    <string name="premium_try_again">Try again</string>
+    <string name="premium_start_trial">Start 7-day free trial</string>
+    <string name="premium_terms">Free for 7 days, then %1$s. Cancel anytime in settings.</string>
+    <string name="premium_error_payment">Your payment didn\'t go through. No charge was made.</string>
+</resources>

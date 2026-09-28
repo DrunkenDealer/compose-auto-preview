@@ -42,11 +42,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.sample.PreviewBloom
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.Habit
 import app.mashlab.autopreview.sample.model.SampleHabits
 import app.mashlab.autopreview.sample.ui.components.BloomCard
@@ -109,12 +113,19 @@ fun HabitDetailScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.habit_back),
+                        )
                     }
                 },
                 actions = {
-                    IconButton(onClick = onEdit) { Icon(Icons.Rounded.Edit, contentDescription = "Edit") }
-                    IconButton(onClick = onDelete) { Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete") }
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.habit_edit))
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Rounded.DeleteOutline, contentDescription = stringResource(R.string.habit_delete))
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
@@ -181,15 +192,19 @@ private fun StreakCard(state: HabitDetailState) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = if (streak > 0) "$streak days" else "Streak reset",
+                    text = if (streak > 0) {
+                        pluralStringResource(R.plurals.habit_streak_days, streak, streak)
+                    } else {
+                        stringResource(R.string.habit_streak_reset)
+                    },
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = if (streak > 0) {
-                        "Current streak · best is ${state.bestStreak}"
+                        stringResource(R.string.habit_streak_current, state.bestStreak)
                     } else {
-                        "Check in today to start a new one"
+                        stringResource(R.string.habit_streak_restart)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -216,9 +231,9 @@ private fun StreakCard(state: HabitDetailState) {
 @Composable
 private fun Stats(state: HabitDetailState) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        StatTile("${state.completion}%", "Completion", Modifier.weight(1f))
-        StatTile("${state.bestStreak}", "Best streak", Modifier.weight(1f))
-        StatTile("${state.checkIns}", "Check-ins", Modifier.weight(1f))
+        StatTile("${state.completion}%", stringResource(R.string.habit_stat_completion), Modifier.weight(1f))
+        StatTile("${state.bestStreak}", stringResource(R.string.habit_stat_best_streak), Modifier.weight(1f))
+        StatTile("${state.checkIns}", stringResource(R.string.habit_stat_check_ins), Modifier.weight(1f))
     }
 }
 
@@ -228,10 +243,10 @@ private fun CalendarCard(state: HabitDetailState) {
     val firstWeekday = 1
     val daysInMonth = 30
     BloomCard {
-        Text("September 2026", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.habit_calendar_month), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(16.dp))
         Row {
-            listOf("M", "T", "W", "T", "F", "S", "S").forEach {
+            stringArrayResource(R.array.habit_weekdays).forEach {
                 Text(
                     text = it,
                     modifier = Modifier.weight(1f),
@@ -286,9 +301,9 @@ private fun ReminderCard(reminder: String?) {
             Icon(Icons.Rounded.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text("Reminder", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.habit_reminder), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    text = reminder ?: "Off",
+                    text = reminder ?: stringResource(R.string.habit_reminder_off),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -308,7 +323,7 @@ private fun CheckInButton(habit: Habit) {
         FilledTonalButton(onClick = {}, modifier = modifier) {
             Icon(Icons.Rounded.Check, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Done for today")
+            Text(stringResource(R.string.habit_done_today))
         }
     } else {
         Button(
@@ -316,7 +331,7 @@ private fun CheckInButton(habit: Habit) {
             modifier = modifier,
             colors = ButtonDefaults.buttonColors(containerColor = habit.tint.color, contentColor = Color.White),
         ) {
-            Text("Mark as done")
+            Text(stringResource(R.string.habit_mark_done))
         }
     }
 }

@@ -20,7 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.mashlab.autopreview.kmp.resources.Res
+import app.mashlab.autopreview.kmp.resources.profile_empty
+import app.mashlab.autopreview.kmp.resources.profile_streak
+import app.mashlab.autopreview.kmp.resources.profile_streak_none
 import app.mashlab.autopreview.kmp.theme.KitTheme
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 data class ProfileState(
     val name: String,
@@ -74,13 +80,17 @@ fun ProfileScreen(
                 }
                 Card(Modifier.fillMaxWidth()) {
                     Text(
-                        text = if (state.streak == 0) "No streak yet" else "${state.streak}-day streak",
+                        text = if (state.streak == 0) {
+                            stringResource(Res.string.profile_streak_none)
+                        } else {
+                            pluralStringResource(Res.plurals.profile_streak, state.streak, state.streak)
+                        },
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.headlineSmall,
                     )
                 }
                 if (state.habits.isEmpty()) {
-                    Text("Add your first habit to get started.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(Res.string.profile_empty), style = MaterialTheme.typography.bodyLarge)
                 }
                 state.habits.forEach { habit ->
                     Text("• $habit", style = MaterialTheme.typography.bodyLarge)

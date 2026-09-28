@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="insights_title">Statistik</string>
+    <string name="insights_range_week">Woche</string>
+    <string name="insights_range_month">Monat</string>
+    <string name="insights_empty_title">Deine Statistik wächst</string>
+    <string name="insights_empty_body">Checke 3 Tage lang ein, dann zeigen wir dir Trends, Serien und was deine Stimmung hebt.</string>
+    <string name="insights_completion">Erfüllt</string>
+    <string name="insights_day_streak">Tage in Folge</string>
+    <string name="insights_perfect_days">Perfekte Tage</string>
+    <string name="insights_check_ins">Check-ins</string>
+    <string name="insights_by_day">Diese Woche, nach Tagen</string>
+    <string name="insights_by_week">September, nach Wochen</string>
+    <string name="insights_week_label">KW %1$d</string>
+    <string name="insights_mood">Stimmung</string>
+    <string name="insights_mood_trend">Steigt an Tagen, an denen du meditierst</string>
+    <string name="insights_most_consistent">Am beständigsten</string>
+</resources>

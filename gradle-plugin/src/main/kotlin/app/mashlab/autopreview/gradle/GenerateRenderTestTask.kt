@@ -66,6 +66,8 @@ import android.graphics.Typeface
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
+import android.view.View.MeasureSpec
+import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -227,6 +229,7 @@ class AutoPreviewRenderTest {
             if (params.flags and WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0) {
                 canvas.drawColor(Color.argb((params.dimAmount * 255).toInt(), 0, 0, 0))
             }
+            wrapWindow(view, display)
             // Robolectric lays every window out at 0,0; position it the way WindowManager would.
             Gravity.apply(params.gravity, view.width, view.height, display, params.x, params.y, frame)
             canvas.save()
@@ -235,6 +238,23 @@ class AutoPreviewRenderTest {
             canvas.restore()
         }
         return bitmap
+    }
+
+    // A window that wraps its width (a dialog) is first measured at the platform's preferred dialog width, 320dp on
+    // phones, and widened only if its content doesn't fit, as ViewRootImpl does. Robolectric gives it the whole display.
+    private fun wrapWindow(view: View, display: Rect) {
+        if (view.layoutParams.width != ViewGroup.LayoutParams.WRAP_CONTENT) return
+        val resources = RuntimeEnvironment.getApplication().resources
+        val preferred = resources.getIdentifier("config_prefDialogWidth", "dimen", "android")
+            .takeIf { it != 0 }
+            ?.let(resources::getDimensionPixelSize)
+            ?: dp(320f).toInt()
+        val height = MeasureSpec.makeMeasureSpec(display.height(), MeasureSpec.AT_MOST)
+        view.measure(MeasureSpec.makeMeasureSpec(minOf(preferred, display.width()), MeasureSpec.AT_MOST), height)
+        if (view.measuredWidthAndState and View.MEASURED_STATE_TOO_SMALL != 0) {
+            view.measure(MeasureSpec.makeMeasureSpec(display.width(), MeasureSpec.AT_MOST), height)
+        }
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
     }
 
     private fun dp(value: Float) = value * RuntimeEnvironment.getApplication().resources.displayMetrics.density

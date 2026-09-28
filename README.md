@@ -31,6 +31,40 @@ Compose Auto Preview splits the work:
 |---|---|
 | **Android Studio** | Every device and theme, for the first state. Light enough to keep editing. |
 | **`./gradlew autoPreview`** | Every device, theme *and* state, rendered to images and opened as a report in your browser. |
+| **Your AI coding agent** | The same images as plain PNG files, so it can see the UI it wrote and fix it. See [With an AI coding agent](#with-an-ai-coding-agent). |
+
+## With an AI coding agent
+
+A coding agent can't see the screens it writes. The report gives it that: every render is a PNG at a predictable path, next to an index of all of them. Claude Code, Cursor, Codex, Copilot or any agent that reads images can open them and check its own work.
+
+You don't need to read the rest of this page first. Paste this to set it up:
+
+```text
+Add Compose Auto Preview to this project following
+https://github.com/DrunkenDealer/compose-auto-preview#readme.
+Give every screen a samples object that covers each state it can be in:
+default, empty, loading, error and very long text.
+Then run the autoPreview task and fix anything that fails to render.
+```
+
+And this after each UI change:
+
+```text
+Run ./gradlew :app:autoPreview -PautoPreview.open=false, then open the images
+in app/build/autopreview/images/. On every device, theme and language, look for
+clipped or overlapping text, low contrast in dark mode, content under the
+status bar or gesture handle, and states that are missing. Fix what you find
+and run it again.
+```
+
+Use your app module instead of `:app` if it's named differently (see [Kotlin Multiplatform](#kotlin-multiplatform)). The agent finds everything under that module's `build/autopreview/`:
+
+| Path | What's in it |
+|---|---|
+| `images/<module>/<Screen>/<locale>/<Device>/<Theme>/<Sample>.png` | One image per render |
+| `assets/data.js` | Every screen and render as JSON: devices, states, languages, navigation links, and the error for each render that failed |
+
+A render that throws doesn't fail the build. It shows up in `data.js` with its error, so ask the agent to check there too.
 
 ## One module
 

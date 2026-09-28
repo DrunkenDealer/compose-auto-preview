@@ -321,7 +321,10 @@ private fun CheckInButton(habit: Habit) {
     }
 }
 
-@PreviewBloom(samplesFrom = HabitDetailSamples::class, navigatesTo = ["EditHabitScreen", "DeleteHabitDialog"])
+@PreviewBloom(
+    samplesFrom = HabitDetailSamples::class,
+    navigatesTo = ["EditHabitScreen", "HabitActionsSheet", "DeleteHabitDialog"],
+)
 @HabitDetailScreenAutoPreviews
 @Composable
 internal fun HabitDetailScreenPreview(

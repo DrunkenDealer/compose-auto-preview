@@ -271,7 +271,8 @@ internal fun ConfirmDialogPreview(
 <details>
 <summary><b>Good to know</b></summary>
 
-- **The report and Studio can differ slightly.** They use different renderers. Endless animations stop at their first frame, and `showSystemUi` isn't drawn in the report.
+- **The report and Studio can differ slightly.** They use different renderers, and endless animations stop at their first frame.
+- **Phones, tablets and foldables render edge to edge**, with a status bar and gesture handle drawn over the screen. Content that ignores `WindowInsets` shows up under them, as it would on a device. Frames come from Android Studio's device art.
 - **Use JDK 21** for your unit tests (Android Studio's bundled one works) to render with your target SDK. Older JDKs render with SDK 34.
 - **Skip opening the browser** with `-PautoPreview.open=false`. It never opens on CI.
 - **Many screens in one file?** *Settings › Editor › UI Tools › Preview Settings › View Mode: Focus* shows one preview at a time in Studio.

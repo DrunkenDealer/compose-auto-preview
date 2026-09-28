@@ -58,8 +58,11 @@ import android.content.ContentProvider
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
@@ -69,6 +72,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.Recomposer
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
+import androidx.core.graphics.Insets
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import java.io.File
 import java.time.Duration
 import org.junit.Assume.assumeTrue
@@ -149,11 +155,22 @@ class AutoPreviewRenderTest {
             // Library test manifests have no app theme, so the framework default would draw a title bar.
             activity.actionBar?.hide()
             activity.window.decorView.setBackgroundColor(screen.backgroundColor.toInt())
+            val systemBars = device.name in SYSTEM_BAR_DEVICES
+            // Edge to edge, as apps targeting SDK 35+ always are, so content lays out around the system bars.
+            if (systemBars) WindowCompat.setDecorFitsSystemWindows(activity.window, false)
             activity.setContent(parent = recomposer) { screen.content(index) }
-            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
+            // Robolectric has no system bars, so their insets are handed to each window, again once dialogs and
+            // sheets have opened theirs.
+            repeat(2) {
+                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250))
+                if (systemBars) (rootViewNames() - existingWindows).forEach { rootView(it).dispatchApplyWindowInsets(systemBarInsets()) }
+            }
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250))
             val windows = (rootViewNames() - existingWindows).map(::rootView)
             file.parentFile?.mkdirs()
-            file.outputStream().use { drawScreen(windows).compress(Bitmap.CompressFormat.PNG, 100, it) }
+            val bitmap = drawScreen(windows)
+            if (systemBars) drawSystemBars(Canvas(bitmap), dark = theme == "Dark")
+            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         } finally {
             controller.pause().stop().destroy()
             recomposer.cancel()
@@ -199,6 +216,48 @@ class AutoPreviewRenderTest {
         return bitmap
     }
 
+    private fun dp(value: Float) = value * RuntimeEnvironment.getApplication().resources.displayMetrics.density
+
+    private fun systemBarInsets() = WindowInsetsCompat.Builder()
+        .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, dp(STATUS_BAR_DP).toInt(), 0, 0))
+        .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, dp(NAVIGATION_BAR_DP).toInt()))
+        .build()
+        .toWindowInsets()!!
+
+    // A Pixel-style status bar (clock left; signal, wifi and battery right) and gesture handle, over every window as
+    // on device. Icons are dark on light themes and light on dark ones.
+    private fun drawSystemBars(canvas: Canvas, dark: Boolean) {
+        val width = canvas.width.toFloat()
+        val height = canvas.height.toFloat()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (dark) Color.WHITE else Color.rgb(31, 31, 31) }
+        val middle = dp(STATUS_BAR_DP) / 2
+        paint.textSize = dp(14f)
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        canvas.drawText("9:30", dp(24f), middle - (paint.descent() + paint.ascent()) / 2, paint)
+
+        val battery = RectF(width - dp(24f) - dp(9f), middle - dp(7f), width - dp(24f), middle + dp(7f))
+        canvas.drawRoundRect(battery, dp(2f), dp(2f), paint)
+        canvas.drawRect(battery.left + dp(2.5f), battery.top - dp(1.5f), battery.right - dp(2.5f), battery.top, paint)
+        val wifiRight = battery.left - dp(8f)
+        val wifi = RectF(wifiRight - dp(16f), middle - dp(6f), wifiRight, middle + dp(10f))
+        canvas.drawArc(wifi, 225f, 90f, true, paint)
+        val signalRight = wifi.left - dp(6f)
+        canvas.drawPath(
+            Path().apply {
+                moveTo(signalRight, middle - dp(6f))
+                lineTo(signalRight, middle + dp(6f))
+                lineTo(signalRight - dp(12f), middle + dp(6f))
+                close()
+            },
+            paint,
+        )
+
+        val handle = RectF(width / 2 - dp(36f), 0f, width / 2 + dp(36f), dp(4f))
+        handle.offset(0f, height - dp(NAVIGATION_BAR_DP) / 2 - dp(2f))
+        paint.alpha = 0xB0
+        canvas.drawRoundRect(handle, dp(2f), dp(2f), paint)
+    }
+
     // Infinite animations (progress indicators, shimmers) would otherwise keep the frame loop busy forever.
     private object FreezeInfiniteAnimations : InfiniteAnimationPolicy {
         override suspend fun <R> onInfiniteOperation(block: suspend () -> R): R = awaitCancellation()
@@ -213,6 +272,12 @@ class AutoPreviewRenderTest {
 
     private fun rootView(name: String): View =
         windowManagerGlobal.getMethod("getRootView", String::class.java).invoke(windowManager, name) as View
+
+    private companion object {
+        val SYSTEM_BAR_DEVICES = setOf("Phone", "Tablet", "Foldable")
+        const val STATUS_BAR_DP = 24f
+        const val NAVIGATION_BAR_DP = 24f
+    }
 
     private fun json(value: String?): String = value?.let {
         "\"" + it.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\""

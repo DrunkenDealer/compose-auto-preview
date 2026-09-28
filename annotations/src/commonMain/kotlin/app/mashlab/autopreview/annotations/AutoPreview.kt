@@ -3,6 +3,10 @@ package app.mashlab.autopreview.annotations
 import kotlin.reflect.KClass
 
 /**
+ * @param locale deprecated, use [locales]. Ignored when [locales] is set.
+ * @param locales the languages to render the screen in, as resource qualifiers such as `"en"`, `"de"` or
+ * `"pt-rBR"`. Every locale gets the full device × theme matrix, in Studio and in the report, where the first one is
+ * shown by default and all of them can be compared side by side. Empty means [locale].
  * @param navigatesTo ids of screens this one links to in the rendered app graph. A screen id is the
  * preview function name without the `Preview` suffix, e.g. `SettingsScreenPreview` → `"SettingsScreen"`. The screen may
  * live in another module; the edge shows in any report that includes both.
@@ -18,6 +22,7 @@ import kotlin.reflect.KClass
 annotation class AutoPreview(
     val samplesFrom: KClass<*>,
     val locale: String = "en",
+    val locales: Array<String> = [],
     val devices: Array<Device> = [Device.Phone],
     val themes: Array<Theme> = [Theme.Light, Theme.Dark],
     val backgroundColor: Long = 0xFFFFFFFF,

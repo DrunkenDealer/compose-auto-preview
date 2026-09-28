@@ -1,5 +1,6 @@
 package app.mashlab.autopreview.sample.feature.welcome
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,26 +40,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import app.mashlab.autopreview.annotations.AutoPreview
 import app.mashlab.autopreview.annotations.Device
 import app.mashlab.autopreview.annotations.Theme
+import app.mashlab.autopreview.sample.R
 import app.mashlab.autopreview.sample.model.HabitTint
 import app.mashlab.autopreview.sample.ui.components.BloomLogo
 import app.mashlab.autopreview.sample.ui.components.HabitIcon
 import app.mashlab.autopreview.sample.ui.theme.BloomTheme
 
 enum class WelcomePage(
-    val title: String,
-    val body: String,
+    @StringRes val title: Int,
+    @StringRes val body: Int,
     val icon: ImageVector,
     val tint: HabitTint,
     val orbit: List<Pair<ImageVector, HabitTint>>,
 ) {
     Track(
-        title = "Small habits,\nbig bloom",
-        body = "Build routines that stick with a gentle daily check-in. One tap, and you're done.",
+        title = R.string.welcome_track_title,
+        body = R.string.welcome_track_body,
         icon = Icons.Rounded.Spa,
         tint = HabitTint.Sage,
         orbit = listOf(
@@ -68,8 +71,8 @@ enum class WelcomePage(
         ),
     ),
     Reflect(
-        title = "Notice how\nyou feel",
-        body = "Log your mood in a second and see which habits lift your days.",
+        title = R.string.welcome_reflect_title,
+        body = R.string.welcome_reflect_body,
         icon = Icons.Rounded.Mood,
         tint = HabitTint.Lavender,
         orbit = listOf(
@@ -79,8 +82,8 @@ enum class WelcomePage(
         ),
     ),
     Grow(
-        title = "Grow at\nyour own pace",
-        body = "Streaks, insights and reminders that nudge you forward, never nag.",
+        title = R.string.welcome_grow_title,
+        body = R.string.welcome_grow_body,
         icon = Icons.Rounded.EmojiEvents,
         tint = HabitTint.Amber,
         orbit = listOf(
@@ -136,7 +139,11 @@ fun WelcomeScreen(
                 Column(Modifier.fillMaxSize().padding(24.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Brand(Modifier.weight(1f))
-                        if (state.page != WelcomePage.Grow) TextButton(onClick = onNext) { Text("Skip") }
+                        if (state.page !=
+                            WelcomePage.Grow
+                        ) {
+                            TextButton(onClick = onNext) { Text(stringResource(R.string.welcome_skip)) }
+                        }
                     }
                     Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Hero(state.page, Modifier.fillMaxWidth(0.85f))
@@ -220,10 +227,10 @@ private fun PageText(page: WelcomePage) {
             }
         }
         Spacer(Modifier.height(20.dp))
-        Text(page.title, style = MaterialTheme.typography.displaySmall)
+        Text(stringResource(page.title), style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(12.dp))
         Text(
-            text = page.body,
+            text = stringResource(page.body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -238,15 +245,26 @@ private fun Actions(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Button(onClick = onNext, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-            Text(if (page == WelcomePage.Grow) "Get started" else "Continue")
+            Text(
+                stringResource(
+                    if (page ==
+                        WelcomePage.Grow
+                    ) {
+                        R.string.welcome_get_started
+                    } else {
+                        R.string.welcome_continue
+                    },
+                ),
+            )
         }
         Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onSignIn) { Text("I already have an account") }
+        TextButton(onClick = onSignIn) { Text(stringResource(R.string.welcome_sign_in)) }
     }
 }
 
 @AutoPreview(
     samplesFrom = WelcomeSamples::class,
+    locales = ["en", "de", "uk"],
     devices = [Device.Phone, Device.Tablet, Device.Foldable],
     themes = [Theme.Light, Theme.Dark],
     navigatesTo = ["SignInScreen"],

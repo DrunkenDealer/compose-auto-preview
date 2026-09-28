@@ -43,9 +43,9 @@ class AutoPreviewReportTaskTest {
 
         val data = out.resolve("assets/data.js").readText()
         assertContains(data, "\"modules\":[\":app\",\":feature:settings\"]")
-        assertContains(data, "\"image\":\"feature/settings/Settings/Phone/Light/Default.png\"")
+        assertContains(data, "\"image\":\"feature/settings/Settings/en/Phone/Light/Default.png\"")
         assertContains(data, "\"module\":\":feature:settings\"")
-        assertTrue(out.resolve("images/feature/settings/Settings/Phone/Light/Default.png").isFile)
+        assertTrue(out.resolve("images/feature/settings/Settings/en/Phone/Light/Default.png").isFile)
     }
 
     @Test
@@ -114,12 +114,13 @@ class AutoPreviewReportTaskTest {
         val render = dir.newFolder(module.replace(':', '_'))
         val screens = ids.map { id ->
             render
-                .resolve("$id/Phone/Light/Default.png")
+                .resolve("$id/en/Phone/Light/Default.png")
                 .apply { parentFile.mkdirs() }
                 .writeText("png")
             """{"id":"$id","navigatesTo":[${navigatesTo[id]?.let { "\"$it\"" }.orEmpty()}],""" +
-                """"entryPoint":${id == entryPoint},"cells":[{"device":"Phone","theme":"Light","sample":"Default",""" +
-                """"image":"$id/Phone/Light/Default.png"}]}"""
+                """"entryPoint":${id == entryPoint},"locales":["en"],"cells":[{"locale":"en","device":"Phone",""" +
+                """"theme":"Light","sample":"Default",""" +
+                """"image":"$id/en/Phone/Light/Default.png"}]}"""
         }
         render.resolve("manifest.json").writeText(
             """{"density":2,"module":"$module","screens":[${screens.joinToString(",")}]}""",

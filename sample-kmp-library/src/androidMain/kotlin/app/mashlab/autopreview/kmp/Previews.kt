@@ -25,7 +25,7 @@ internal fun ProfileScreenPreview(
     @PreviewParameter(ProfileScreenPreviewSamplesProvider::class) state: ProfileState,
 ) = ProfileScreen(state)
 
-@AutoPreview(samplesFrom = AboutSamples::class)
+@AutoPreview(samplesFrom = AboutSamples::class, locales = ["en", "de", "uk"])
 @AboutScreenAutoPreviews
 @Composable
 internal fun AboutScreenPreview(

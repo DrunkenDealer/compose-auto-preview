@@ -1,0 +1,5 @@
+<resources>
+    <string name="about_title">Bloom Kit</string>
+    <string name="about_tagline">Спільний інтерфейс для Android та iOS, зібраний із ресурсів Compose.</string>
+    <string name="about_version">Версія %1$s</string>
+</resources>

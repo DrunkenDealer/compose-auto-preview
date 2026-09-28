@@ -77,6 +77,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import java.io.File
 import java.time.Duration
+import java.util.Locale
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -103,23 +104,27 @@ class AutoPreviewRenderTest {
         val outputPath: String? = System.getProperty("autopreview.outputDir")
         assumeTrue(outputPath != null)
         val outputDir = File(outputPath!!)
+        val defaultLocale = Locale.getDefault()
         outputDir.deleteRecursively()
         outputDir.mkdirs()
         startComposeResources()
         val screens = AutoPreviewRegistry.screens.map { screen ->
-            val cells = screen.devices.flatMap { device ->
-                screen.themes.flatMap { theme ->
-                    screen.samples.mapIndexed { index, sample ->
-                        val image = "${'$'}{screen.id}/${'$'}{device.name}/${'$'}{theme}/${'$'}sample.png"
-                        val error = runCatching { capture(screen, device, theme, index, File(outputDir, image)) }
-                            .exceptionOrNull()
-                        "{" + listOf(
-                            "device" to device.name,
-                            "theme" to theme,
-                            "sample" to sample,
-                            "image" to image,
-                            "error" to error?.let { it.toString() },
-                        ).joinToString(",") { (key, value) -> json(key) + ":" + json(value) } + "}"
+            val cells = screen.locales.flatMap { locale ->
+                screen.devices.flatMap { device ->
+                    screen.themes.flatMap { theme ->
+                        screen.samples.mapIndexed { index, sample ->
+                            val image = "${'$'}{screen.id}/${'$'}locale/${'$'}{device.name}/${'$'}{theme}/${'$'}sample.png"
+                            val error = runCatching { capture(screen, locale, device, theme, index, File(outputDir, image)) }
+                                .exceptionOrNull()
+                            "{" + listOf(
+                                "locale" to locale,
+                                "device" to device.name,
+                                "theme" to theme,
+                                "sample" to sample,
+                                "image" to image,
+                                "error" to error?.let { it.toString() },
+                            ).joinToString(",") { (key, value) -> json(key) + ":" + json(value) } + "}"
+                        }
                     }
                 }
             }
@@ -128,6 +133,7 @@ class AutoPreviewRenderTest {
                 json("navigatesTo") + ":" + screen.navigatesTo.joinToString(",", "[", "]") { json(it) },
                 json("entryPoint") + ":" + screen.entryPoint,
                 json("group") + ":" + json(screen.group),
+                json("locales") + ":" + screen.locales.joinToString(",", "[", "]") { json(it) },
                 json("devices") + ":" + screen.devices.joinToString(",", "[", "]") {
                     "{" + json("name") + ":" + json(it.name) + "," + json("widthDp") + ":" + it.widthDp + "," +
                         json("heightDp") + ":" + it.heightDp + "," + json("round") + ":" + it.isRound + "}"
@@ -140,11 +146,26 @@ class AutoPreviewRenderTest {
         val module = json(System.getProperty("autopreview.module"))
         File(outputDir, "manifest.json")
             .writeText(screens.joinToString(",", "{\"density\":2,\"module\":${'$'}module,\"screens\":[", "]}"))
+        Locale.setDefault(defaultLocale)
     }
 
-    private fun capture(screen: AutoPreviewScreen, device: AutoPreviewDevice, theme: String, index: Int, file: File) {
+    // Resource qualifier to Locale: "pt-rBR" → pt-BR, "b+sr+Latn" → sr-Latn.
+    private fun languageTag(qualifier: String): Locale = Locale.forLanguageTag(
+        if (qualifier.startsWith("b+")) qualifier.removePrefix("b+").replace('+', '-') else qualifier.replace("-r", "-"),
+    )
+
+    private fun capture(
+        screen: AutoPreviewScreen,
+        locale: String,
+        device: AutoPreviewDevice,
+        theme: String,
+        index: Int,
+        file: File,
+    ) {
         val night = if (theme == "Dark") "night" else "notnight"
-        RuntimeEnvironment.setQualifiers("${'$'}{screen.locale}-${'$'}{device.qualifiers}-${'$'}night-xhdpi")
+        RuntimeEnvironment.setQualifiers("${'$'}locale-${'$'}{device.qualifiers}-${'$'}night-xhdpi")
+        // Compose Multiplatform resources and java.time read the JVM default, which the qualifiers leave alone.
+        Locale.setDefault(languageTag(locale))
         val existingWindows = rootViewNames()
         val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
         val scope = CoroutineScope(AndroidUiDispatcher.Main + FreezeInfiniteAnimations)

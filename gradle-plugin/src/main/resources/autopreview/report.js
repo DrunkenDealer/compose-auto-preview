@@ -24,6 +24,13 @@ const deviceOf = (screen, name) => screen.devices.find(d => d.name === name);
 const failures = screen => screen.cells.filter(c => c.error).length;
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+// ---- Locales -------------------------------------------------------------------------------
+// One language is shown at a time and kept across screens; a screen without it falls back to its first language.
+const locales = [...new Set(screens.flatMap(s => s.locales))];
+let locale = locales.includes(store.get("locale")) ? store.get("locale") : locales[0];
+const localeOf = screen => screen.locales.includes(locale) ? locale : screen.locales[0];
+const cellsOf = screen => screen.cells.filter(c => c.locale === localeOf(screen));
+
 // ---- Navigation model -----------------------------------------------------------------------
 // Screens sharing a `group` (the tabs of a bottom bar, a flow) reach each other without navigatesTo, so links between
 // them are left out and the group is drawn as a box instead.
@@ -59,7 +66,7 @@ const ordered = [...screens].sort((a, b) => hops(a.id) - hops(b.id) || (a.group 
   || a.id.localeCompare(b.id));
 
 function thumbnail(screen) {
-  const ok = screen.cells.filter(c => !c.error);
+  const ok = cellsOf(screen).filter(c => !c.error);
   const cell = ok.find(c => c.device === screen.devices[0].name && c.theme === "Light") || ok[0];
   return cell && { cell, device: deviceOf(screen, cell.device) };
 }
@@ -92,6 +99,18 @@ function framedThumb(screen) {
     document.documentElement.dataset.theme = next;
     store.set("theme", next);
   });
+
+  $("locale-pick").hidden = locales.length < 2;
+  $("locale").append(...locales.map(l => el("option", { value: l }, l)));
+  $("locale").value = locale;
+  $("locale").addEventListener("change", e => setLocale(e.target.value));
+}
+function setLocale(next) {
+  locale = next;
+  store.set("locale", next);
+  $("locale").value = next;
+  graph.refresh();
+  if (!page.hidden) { const y = scrollY; route(); scrollTo(0, y); }
 }
 
 function notices() {
@@ -513,6 +532,9 @@ const graph = (() => {
       highlight(null);
       if (!cameraTouched) fit();
     },
+    refresh() {
+      for (const n of nodes) n.el.querySelector(".thumb > .device, .thumb > .ph, .thumb > img")?.replaceWith(framedThumb(n.screen));
+    },
   };
 })();
 
@@ -548,6 +570,25 @@ function renderScreen(screen, deviceName) {
     },
   }, tabs);
 
+  // Compare lays every language of one theme side by side, to spot text that no longer fits.
+  const multilingual = screen.locales.length > 1;
+  let compare = multilingual && store.get("compare") === "locales";
+  let compareTheme = screen.themes.includes(store.get("compareTheme")) ? store.get("compareTheme") : screen.themes[0];
+  const themesBtn = el("button", { type: "button", onclick: () => setCompare(false) }, "Themes");
+  const localesBtn = el("button", { type: "button", title: "All languages side by side", onclick: () => setCompare(true) }, "Languages");
+  const themeBtns = screen.themes.map(t => el("button", { type: "button", onclick: () => { compareTheme = t; store.set("compareTheme", t); setCompare(true); } }, t));
+  const themePick = el("div", { class: "seg", role: "group", "aria-label": "Theme" }, themeBtns);
+  function setCompare(value) {
+    compare = value;
+    store.set("compare", value ? "locales" : "themes");
+    themesBtn.setAttribute("aria-pressed", String(!value));
+    localesBtn.setAttribute("aria-pressed", String(value));
+    themeBtns.forEach(b => b.setAttribute("aria-pressed", String(b.textContent === compareTheme)));
+    themePick.hidden = !value;
+    if (current) select(current);
+  }
+  let current = null;
+
   let actual = store.get("zoom") === "actual";
   const panel = el("div", { role: "tabpanel", id: "panel", class: actual ? "actual" : null });
   const fitBtn = el("button", { type: "button", onclick: () => setZoom(false) }, "Fit");
@@ -562,6 +603,7 @@ function renderScreen(screen, deviceName) {
   setZoom(actual);
 
   function select(d) {
+    current = d;
     tabs.forEach((tab, i) => {
       const selected = screen.devices[i] === d;
       tab.setAttribute("aria-selected", String(selected));
@@ -572,21 +614,25 @@ function renderScreen(screen, deviceName) {
     history.replaceState(null, "", screenUrl(screen.id, d.name));
     const landscape = d.widthDp > d.heightDp;
     const items = [];
+    const swatch = theme => el("i", { style: `background:${theme === "Dark" ? "#16181c" : "#fff"}` });
     panel.replaceChildren(...screen.samples.map(sample => el("section", { class: "state" },
       el("h2", {}, sample),
-      el("div", { class: "shots" + (landscape ? " landscape" : "") }, screen.themes.map(theme => {
-        const cell = screen.cells.find(c => c.device === d.name && c.theme === theme && c.sample === sample);
-        const caption = el("figcaption", {}, el("i", { style: `background:${theme === "Dark" ? "#16181c" : "#fff"}` }), theme);
+      el("div", { class: "shots" + (landscape ? " landscape" : "") }, (compare
+        ? screen.locales.map(l => ({ l, theme: compareTheme, caption: [swatch(compareTheme), l] }))
+        : screen.themes.map(theme => ({ l: localeOf(screen), theme, caption: [swatch(theme), theme] }))
+      ).map(({ l, theme, caption: label }) => {
+        const cell = screen.cells.find(c => c.locale === l && c.device === d.name && c.theme === theme && c.sample === sample);
+        const caption = el("figcaption", {}, label);
         if (!cell || cell.error) {
           return el("figure", { class: "shot" }, el("div", { class: "shot-error" },
             el("strong", {}, "Render failed"), el("code", {}, cell ? cell.error : "Not generated")), caption);
         }
         const position = items.push({ cell, screen, device: d }) - 1;
         return el("figure", { class: "shot" }, el("button", {
-          type: "button", class: "frame", "aria-label": `Open ${sample}, ${theme} full screen`, style: frameSize(d),
+          type: "button", class: "frame", "aria-label": `Open ${sample}, ${theme}, ${l} full screen`, style: frameSize(d),
           onclick: e => openLightbox(items, position, e.currentTarget),
         }, framed(d, el("img", {
-          src: imageUrl(cell), alt: `${screen.id}, ${sample}, ${theme}, ${d.name}`, loading: "lazy", decoding: "async",
+          src: imageUrl(cell), alt: `${screen.id}, ${sample}, ${theme}, ${l}, ${d.name}`, loading: "lazy", decoding: "async",
           width: d.widthDp * DENSITY, height: d.heightDp * DENSITY,
           onload: e => e.target.closest(".frame").classList.add("loaded"),
           onerror: e => e.target.closest(".frame").replaceWith(el("div", { class: "shot-error" },
@@ -605,6 +651,7 @@ function renderScreen(screen, deviceName) {
           entry && isUnreachable(screen.id) ? el("span", { class: "badge" }, "Unreachable") : "",
           failed ? el("span", { class: "badge bad" }, `${failed} failed`) : ""),
         el("p", { class: "meta" }, [plural(screen.samples.length, "state"), screen.themes.join(" & "),
+          multilingual ? plural(screen.locales.length, "language") : screen.locales[0],
           plural(screen.devices.length, "device"), entry && depth.has(screen.id) ? plural(depth.get(screen.id), "hop") + " from start" : null]
           .filter(Boolean).join(" · "))),
       el("nav", { class: "pager", "aria-label": "Screens" },
@@ -616,9 +663,13 @@ function renderScreen(screen, deviceName) {
       el("section", {}, el("h2", {}, "Navigates to"),
         el("div", { class: "chips" }, to.length ? to.map(chip) : el("span", { class: "none" }, "Nothing yet — add navigatesTo"))),
       siblings(screen.id).length ? el("section", {}, el("h2", {}, screen.group), el("div", { class: "chips" }, siblings(screen.id).map(chip))) : ""),
-    el("div", { class: "toolbar" }, tablist, el("div", { class: "seg", role: "group", "aria-label": "Image size" }, fitBtn, actualBtn)),
+    el("div", { class: "toolbar" }, tablist, el("div", { class: "tools" },
+      multilingual ? el("div", { class: "seg", role: "group", "aria-label": "Compare" }, themesBtn, localesBtn) : "",
+      multilingual ? themePick : "",
+      el("div", { class: "seg", role: "group", "aria-label": "Image size" }, fitBtn, actualBtn))),
     panel,
   );
+  setCompare(compare);
   select(deviceOf(screen, deviceName) || screen.devices[0]);
   document.title = `${screen.id} · Auto Preview`;
   setCrumbs([["App graph", "#/"], [screen.id]]);
@@ -638,7 +689,7 @@ function showLightboxItem() {
   img.height = device.heightDp * DENSITY;
   img.className = device.round ? "round" : "";
   $("lb-title").textContent = `${screen.id} › ${cell.sample}`;
-  $("lb-sub").textContent = `${cell.theme} · ${device.name} · ${device.widthDp}×${device.heightDp} dp`;
+  $("lb-sub").textContent = `${cell.theme} · ${cell.locale} · ${device.name} · ${device.widthDp}×${device.heightDp} dp`;
   $("lb-count").textContent = `${lightbox.index + 1} / ${lightbox.items.length}`;
   $("lb-open").href = imageUrl(cell);
 }
@@ -658,7 +709,8 @@ function stepLightbox(delta) {
     else if (e.key === "ArrowLeft") stepLightbox(-1);
     else if (e.key === "t" || e.key === "T") {
       const { cell } = lightbox.items[lightbox.index];
-      const other = lightbox.items.findIndex(i => i.cell.sample === cell.sample && i.cell.theme !== cell.theme);
+      const other = lightbox.items.findIndex(i => i.cell.sample === cell.sample && i.cell.locale === cell.locale
+        && i.cell.theme !== cell.theme);
       if (other >= 0) { lightbox.index = other; showLightboxItem(); }
     } else return;
     e.preventDefault();
@@ -680,7 +732,7 @@ function renderList() {
   page.replaceChildren(
     el("div", { class: "list-head" }, el("h1", {}, "Screens"), ...notices()),
     el("div", { class: "table-wrap" }, el("table", {},
-      el("thead", {}, el("tr", {}, ["Screen", "Group", "Hops", "Reached from", "Navigates to", "States", "Devices", "Status"]
+      el("thead", {}, el("tr", {}, ["Screen", "Group", "Hops", "Reached from", "Navigates to", "States", "Devices", "Languages", "Status"]
         .map(h => el("th", { scope: "col" }, h)))),
       el("tbody", {}, ordered.map(s => {
         const failed = failures(s);
@@ -693,6 +745,7 @@ function renderList() {
           el("td", {}, links(outgoing(s.id))),
           el("td", { class: "num" }, s.samples.length),
           el("td", {}, s.devices.map(d => d.name).join(", ")),
+          el("td", {}, s.locales.join(", ")),
           el("td", {}, failed ? el("span", { class: "badge bad" }, `${failed} failed`) : el("span", { class: "badge" }, "OK")),
         );
       })),
@@ -728,8 +781,9 @@ function route() {
 }
 addEventListener("hashchange", route);
 addEventListener("keydown", e => {
-  if (e.target.closest?.("input, dialog") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest?.("input, select, dialog") || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === "/" && !$("graph-view").hidden) { e.preventDefault(); $("search").focus(); }
+  if ((e.key === "l" || e.key === "L") && locales.length > 1) setLocale(locales[(locales.indexOf(locale) + 1) % locales.length]);
   if ((e.key === "[" || e.key === "]") && !page.hidden) {
     const link = page.querySelectorAll(".pager a")[e.key === "[" ? 0 : 1];
     if (link?.getAttribute("href")) location.hash = link.getAttribute("href");

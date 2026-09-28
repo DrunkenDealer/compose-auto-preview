@@ -1,0 +1,12 @@
+<resources>
+    <string name="welcome_track_title">Маленькі звички,\nвелике цвітіння</string>
+    <string name="welcome_track_body">Будуйте звички, що залишаються, з легкою щоденною відміткою. Один дотик — і готово.</string>
+    <string name="welcome_reflect_title">Помічайте,\nяк ви почуваєтеся</string>
+    <string name="welcome_reflect_body">Записуйте настрій за секунду й дивіться, які звички роблять ваші дні кращими.</string>
+    <string name="welcome_grow_title">Ростіть\nу власному темпі</string>
+    <string name="welcome_grow_body">Серії, аналітика й нагадування, що підштовхують уперед, але не набридають.</string>
+    <string name="welcome_skip">Пропустити</string>
+    <string name="welcome_continue">Продовжити</string>
+    <string name="welcome_get_started">Почати</string>
+    <string name="welcome_sign_in">У мене вже є обліковий запис</string>
+</resources>

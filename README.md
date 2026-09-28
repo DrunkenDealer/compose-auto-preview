@@ -211,6 +211,16 @@ The report puts them side by side in a labelled box, like *Bottom navigation* in
 
 A preview shows only the composable you give it. If the bottom bar lives in your app's scaffold, it won't be in the image; to see it, wrap the screen in that scaffold inside the preview function.
 
+## Languages
+
+Render a screen in several languages with `locales`, as resource qualifiers:
+
+```kotlin
+@AutoPreview(samplesFrom = WelcomeSamples::class, locales = ["en", "de", "uk"])
+```
+
+Every language gets the full device × theme matrix. The report shows one language at a time: pick it in the header or press `L`, and it stays picked as you move between screens. On a screen page, **Languages** puts every language of one theme side by side, which is where text that no longer fits shows up. Android string resources and Compose Multiplatform `Res.string` both follow the language.
+
 ## More options
 
 <details>
@@ -219,7 +229,8 @@ A preview shows only the composable you give it. If the bottom bar lives in your
 | Parameter         | Type            | Default                     |
 |-------------------|-----------------|-----------------------------|
 | `samplesFrom`     | `KClass<*>`     | —                           |
-| `locale`          | `String`        | `"en"`                      |
+| `locales`         | `Array<String>` | `[]` (falls back to `locale`) |
+| `locale`          | `String`        | `"en"` (deprecated, use `locales`) |
 | `devices`         | `Array<Device>` | `[Device.Phone]`            |
 | `themes`          | `Array<Theme>`  | `[Theme.Light, Theme.Dark]` |
 | `backgroundColor` | `Long`          | `0xFFFFFFFF` (white)        |
@@ -289,7 +300,7 @@ flowchart LR
     G --> H["Images + HTML report"]
 ```
 
-At build time, KSP turns each `@AutoPreview` function into regular Compose previews for Studio. The Gradle plugin renders the same functions with [Robolectric](https://robolectric.org/) for every state, collects the images from each module, and writes a static HTML report you can open from disk. In the report, `←`/`→` step through images, `T` switches theme, `[`/`]` switch screen and `/` searches.
+At build time, KSP turns each `@AutoPreview` function into regular Compose previews for Studio. The Gradle plugin renders the same functions with [Robolectric](https://robolectric.org/) for every state, collects the images from each module, and writes a static HTML report you can open from disk. In the report, `←`/`→` step through images, `T` switches theme, `L` switches language, `[`/`]` switch screen and `/` searches.
 
 ## How it compares
 

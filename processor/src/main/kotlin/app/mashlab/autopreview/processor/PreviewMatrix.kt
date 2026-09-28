@@ -9,19 +9,22 @@ internal object PreviewMatrix {
     private const val DEFAULT_BACKGROUND_COLOR = 0xFFFFFFFFL
 
     fun build(args: AutoPreviewArgs): List<AnnotationSpec> =
-        args.devices.flatMap { device ->
-            args.themes.map { theme -> previewSpec(device, theme, args) }
+        args.locales.flatMap { locale ->
+            args.devices.flatMap { device ->
+                args.themes.map { theme -> previewSpec(locale, device, theme, args) }
+            }
         }
 
     private fun previewSpec(
+        locale: String,
         device: DeviceKind,
         theme: ThemeKind,
         args: AutoPreviewArgs,
     ): AnnotationSpec {
         val builder = AnnotationSpec
             .builder(PREVIEW)
-            .addMember("name = %S", "${args.locale} · ${device.name} · ${theme.name}")
-            .addMember("locale = %S", args.locale)
+            .addMember("name = %S", "$locale · ${device.name} · ${theme.name}")
+            .addMember("locale = %S", locale)
             .addMember("device = %S", device.deviceSpec)
         if (theme == ThemeKind.Dark) {
             builder.addMember("uiMode = %T.UI_MODE_NIGHT_YES", CONFIGURATION)

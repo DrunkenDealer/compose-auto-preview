@@ -1,0 +1,12 @@
+<resources>
+    <string name="welcome_track_title">Small habits,\nbig bloom</string>
+    <string name="welcome_track_body">Build routines that stick with a gentle daily check-in. One tap, and you\'re done.</string>
+    <string name="welcome_reflect_title">Notice how\nyou feel</string>
+    <string name="welcome_reflect_body">Log your mood in a second and see which habits lift your days.</string>
+    <string name="welcome_grow_title">Grow at\nyour own pace</string>
+    <string name="welcome_grow_body">Streaks, insights and reminders that nudge you forward, never nag.</string>
+    <string name="welcome_skip">Skip</string>
+    <string name="welcome_continue">Continue</string>
+    <string name="welcome_get_started">Get started</string>
+    <string name="welcome_sign_in">I already have an account</string>
+</resources>

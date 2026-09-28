@@ -64,10 +64,95 @@ class RenderRegistryTest {
         assertContains(result.messages, "screen id \"Home\" is used by app.a.HomePreview, app.b.HomePreview")
     }
 
+    @Test
+    fun `locales keep their order without duplicates and multiply the preview matrix`() {
+        val (result, registry) = compile(
+            screen(
+                "app",
+                "Home",
+                "locales = [\"en\", \"de\", \"en\", \"uk\"], devices = [Device.Phone, Device.Tablet]",
+            ),
+        )
+
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
+        assertContains(registry, "locales = listOf(\"en\", \"de\", \"uk\"),")
+        assertEquals(1, Regex("""AutoPreviewScreen\(\s*id = """).findAll(registry).count())
+        val previews = generated(result, "HomeAutoPreviews.kt")
+        assertEquals(3 * 2 * 2, Regex("""@Preview\(""").findAll(previews).count())
+        assertContains(previews, "name = \"uk · Tablet · Dark\"")
+    }
+
+    @Test
+    fun `the deprecated locale still works and locales wins over it`() {
+        val (result, registry) = compile(
+            screen("app", "Home", "locale = \"uk\""),
+            screen("app", "Details", "locale = \"uk\", locales = [\"de\", \"fr\"]"),
+        )
+
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
+        assertContains(registry, Regex("""id = "Home",\s*locales = listOf\("uk"\),"""))
+        assertContains(registry, Regex("""id = "Details",\s*locales = listOf\("de", "fr"\),"""))
+    }
+
+    @Test
+    fun `a wrapper declares locales and the usage site overrides them`() {
+        val wrapper = SourceFile.kotlin(
+            "app/AppPreview.kt",
+            """
+            package app
+
+            import app.mashlab.autopreview.annotations.AutoPreview
+            import kotlin.reflect.KClass
+
+            @AutoPreview(samplesFrom = Unit::class, locales = ["en", "de"])
+            annotation class AppPreview(val samplesFrom: KClass<*>, val locales: Array<String> = ["en", "de"])
+            """.trimIndent(),
+        )
+        val (result, registry) = compile(
+            wrapper,
+            screen("app", "Home", annotation = "AppPreview"),
+            screen("app", "Details", "locales = [\"uk\"]", annotation = "AppPreview"),
+        )
+
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
+        assertContains(registry, Regex("""id = "Home",\s*locales = listOf\("en", "de"\),"""))
+        assertContains(registry, Regex("""id = "Details",\s*locales = listOf\("uk"\),"""))
+    }
+
+    @Test
+    fun `a direct and a wrapper annotation on one function are an error`() {
+        val wrapper = SourceFile.kotlin(
+            "app/AppPreview.kt",
+            """
+            package app
+
+            import app.mashlab.autopreview.annotations.AutoPreview
+            import kotlin.reflect.KClass
+
+            @AutoPreview(samplesFrom = Unit::class)
+            annotation class AppPreview(val samplesFrom: KClass<*>)
+            """.trimIndent(),
+        )
+        val (result) = compile(
+            wrapper,
+            screen(
+                "app",
+                "Home",
+                annotation = "AppPreview",
+                extraAnnotation = "@AutoPreview(samplesFrom = HomeSamples::class)",
+            ),
+        )
+
+        assertEquals(KotlinCompilation.ExitCode.COMPILATION_ERROR, result.exitCode)
+        assertContains(result.messages, "HomePreview has 2 @AutoPreview annotations")
+    }
+
     private fun screen(
         pkg: String,
         name: String,
         extraArgs: String = "",
+        annotation: String = "AutoPreview",
+        extraAnnotation: String = "",
     ) = SourceFile.kotlin(
         "${pkg.replace('.', '/')}/$name.kt",
         """
@@ -75,6 +160,7 @@ class RenderRegistryTest {
 
         import androidx.compose.runtime.Composable
         import app.mashlab.autopreview.annotations.AutoPreview
+        import app.mashlab.autopreview.annotations.Device
 
         data class ${name}State(val title: String)
 
@@ -82,11 +168,21 @@ class RenderRegistryTest {
             val Default: ${name}State = ${name}State("$name")
         }
 
-        @AutoPreview(samplesFrom = ${name}Samples::class, $extraArgs)
+        $extraAnnotation
+        @$annotation(samplesFrom = ${name}Samples::class, $extraArgs)
         @Composable
         internal fun ${name}Preview(state: ${name}State) {}
         """.trimIndent(),
     )
+
+    private fun generated(
+        result: JvmCompilationResult,
+        name: String,
+    ): String =
+        result.outputDirectory.parentFile
+            .walk()
+            .first { it.name == name }
+            .readText()
 
     private fun compile(vararg sources: SourceFile): Pair<JvmCompilationResult, String> {
         val compilation = KotlinCompilation().apply {

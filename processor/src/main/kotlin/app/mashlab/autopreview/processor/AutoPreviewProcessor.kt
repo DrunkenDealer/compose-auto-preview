@@ -102,7 +102,18 @@ class AutoPreviewProcessor(
                 }
             }.toList()
 
-        (direct + viaMeta).forEach { (fn, args) -> processFunction(fn, args) }
+        // A function gets one set of generated previews, so it takes one @AutoPreview, direct or through a wrapper.
+        (direct + viaMeta).groupBy({ it.first }, { it.second }).forEach { (fn, args) ->
+            if (args.size > 1) {
+                logger.error(
+                    "@AutoPreview: ${fn.simpleName.asString()} has ${args.size} @AutoPreview annotations " +
+                        "(direct or through a wrapper). Use one, and list several languages in `locales`.",
+                    fn,
+                )
+            } else {
+                processFunction(fn, args.single())
+            }
+        }
         return emptyList()
     }
 

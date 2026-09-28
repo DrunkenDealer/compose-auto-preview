@@ -73,7 +73,7 @@ internal object RenderRegistry {
                 dataClass(
                     screen,
                     "id" to STRING,
-                    "locale" to STRING,
+                    "locales" to LIST.parameterizedBy(STRING),
                     "devices" to LIST.parameterizedBy(device),
                     "themes" to LIST.parameterizedBy(STRING),
                     "backgroundColor" to LONG,
@@ -112,7 +112,7 @@ internal object RenderRegistry {
             .add("%T(\n", screen)
             .indent()
             .add("id = %S,\n", entry.id)
-            .add("locale = %S,\n", args.locale)
+            .add("locales = listOf(${args.locales.joinToString { "%S" }}),\n", *args.locales.toTypedArray())
             .add("devices = listOf(")
             .add(
                 args.devices.joinToString { "%T(%S, %S, %L, %L, %L)" },

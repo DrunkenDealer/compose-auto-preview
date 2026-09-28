@@ -7,7 +7,7 @@ import com.google.devtools.ksp.symbol.KSType
 
 internal data class AutoPreviewArgs(
     val samplesType: KSType,
-    val locale: String,
+    val locales: List<String>,
     val devices: List<DeviceKind>,
     val themes: List<ThemeKind>,
     val backgroundColor: Long,
@@ -22,7 +22,13 @@ internal data class AutoPreviewArgs(
         fun fromArgs(args: Map<String?, Any?>): AutoPreviewArgs =
             AutoPreviewArgs(
                 samplesType = args.getValue("samplesFrom") as KSType,
-                locale = (args["locale"] as? String) ?: "en",
+                // `locales` wins over the deprecated single `locale`.
+                locales = (args["locales"] as? List<*>)
+                    ?.filterIsInstance<String>()
+                    ?.filter(String::isNotBlank)
+                    ?.distinct()
+                    .orEmpty()
+                    .ifEmpty { listOf((args["locale"] as? String)?.takeIf(String::isNotBlank) ?: "en") },
                 devices = args["devices"]
                     .toEnumNames()
                     .mapNotNull(DeviceKind::from)

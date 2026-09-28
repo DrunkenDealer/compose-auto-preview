@@ -1,0 +1,12 @@
+<resources>
+    <string name="welcome_track_title">Kleine Gewohnheiten,\ngroße Blüte</string>
+    <string name="welcome_track_body">Baue Routinen auf, die bleiben – mit einem sanften täglichen Check-in. Ein Tippen, und du bist fertig.</string>
+    <string name="welcome_reflect_title">Achte darauf,\nwie du dich fühlst</string>
+    <string name="welcome_reflect_body">Erfasse deine Stimmung in einer Sekunde und sieh, welche Gewohnheiten deine Tage heben.</string>
+    <string name="welcome_grow_title">Wachse in\ndeinem eigenen Tempo</string>
+    <string name="welcome_grow_body">Serien, Einblicke und Erinnerungen, die dich voranbringen, ohne zu nerven.</string>
+    <string name="welcome_skip">Überspringen</string>
+    <string name="welcome_continue">Weiter</string>
+    <string name="welcome_get_started">Jetzt loslegen</string>
+    <string name="welcome_sign_in">Ich habe bereits ein Konto</string>
+</resources>

@@ -1,0 +1,41 @@
+name: Release
+
+# Publishing a GitHub Release uploads its tag's version to Maven Central. Tags alone, and drafts, publish nothing.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Check the tag matches the version
+        run: |
+          version=$(sed -n 's/^autoPreview = "\(.*\)"/\1/p' gradle/libs.versions.toml)
+          if [ "${{ github.event.release.tag_name }}" != "v$version" ]; then
+            echo "::error::Release tag ${{ github.event.release.tag_name }} doesn't match autoPreview = \"$version\" in gradle/libs.versions.toml"
+            exit 1
+          fi
+      - run: ./gradlew -p gradle-plugin check && ./gradlew :processor:check
+      - name: Publish to Maven Central
+        run: >
+          ./gradlew :annotations:publishAndReleaseToMavenCentral :processor:publishAndReleaseToMavenCentral
+          :gradle-plugin:publishAndReleaseToMavenCentral --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
